@@ -187,6 +187,66 @@
         ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid) && (!newData.exists() || newData.child('uid').val() === auth.uid)",
         ".validate": "!newData.exists() || (newData.child('iv').isString() && newData.child('ct').isString() && newData.child('ct').val().length < 2000)"
       }
+    },
+    "meteor": {
+      "q": {
+        ".read": "auth != null",
+        ".indexOn": [
+          "t"
+        ],
+        "$u": {
+          ".write": "auth != null && auth.uid === $u",
+          ".validate": "newData.child('t').isNumber() && (newData.child('g').val() === 'f' || newData.child('g').val() === 'm')",
+          "g": {
+            ".validate": "newData.isString()"
+          },
+          "age": {
+            ".validate": "newData.isNumber()"
+          },
+          "place": {
+            ".validate": "newData.isString() && newData.val().length <= 20"
+          },
+          "t": {
+            ".validate": "newData.isNumber()"
+          },
+          "claim": {
+            ".write": "auth != null && ((auth.uid === $u && (!data.exists() || !newData.exists())) || (!data.exists() && data.parent().exists() && newData.child('by').val() === auth.uid && root.child('meteor/rooms/'+newData.child('room').val()+'/a').val() === auth.uid && root.child('meteor/rooms/'+newData.child('room').val()+'/b').val() === $u))",
+            "by": {
+              ".validate": "newData.isString()"
+            },
+            "room": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "$o": {
+              ".validate": false
+            }
+          },
+          "$o": {
+            ".validate": false
+          }
+        }
+      },
+      "rooms": {
+        "$r": {
+          ".read": "auth != null && (data.child('a').val() === auth.uid || data.child('b').val() === auth.uid)",
+          ".write": "auth != null && ((!data.exists() && newData.child('a').val() === auth.uid && newData.child('b').val() !== auth.uid && root.child('meteor/q/'+newData.child('b').val()).exists() && !root.child('meteor/q/'+newData.child('b').val()+'/claim').exists() && root.child('meteor/q/'+auth.uid+'/claim/by').val() === auth.uid && !root.child('blocks/'+newData.child('b').val()+'/'+auth.uid).exists() && !root.child('blocks/'+auth.uid+'/'+newData.child('b').val()).exists()) || (data.exists() && !newData.exists() && (data.child('a').val() === auth.uid || data.child('b').val() === auth.uid)))",
+          "start": {
+            ".validate": "newData.val() === now"
+          },
+          "ok": {
+            "$u": {
+              ".write": "auth != null && auth.uid === $u && (root.child('meteor/rooms/'+$r+'/a').val() === auth.uid || root.child('meteor/rooms/'+$r+'/b').val() === auth.uid)",
+              ".validate": "newData.val() === 1 || newData.val() === 2"
+            }
+          },
+          "m": {
+            "$m": {
+              ".write": "auth != null && !data.exists() && newData.child('from').val() === auth.uid && (root.child('meteor/rooms/'+$r+'/a').val() === auth.uid || root.child('meteor/rooms/'+$r+'/b').val() === auth.uid) && now < root.child('meteor/rooms/'+$r+'/start').val() + 600000",
+              ".validate": "newData.child('text').isString() && newData.child('text').val().length >= 1 && newData.child('text').val().length <= 300 && newData.child('at').val() === now"
+            }
+          }
+        }
+      }
     }
   }
 }

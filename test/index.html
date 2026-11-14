@@ -51,6 +51,19 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .zoom button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#1A1A1F;color:var(--ink);font-size:20px;cursor:pointer;padding:0}
 .zoom button.sm{font-size:11px}
 #room:has(.sheet.on) .zoom{display:none}
+.mtbtn{position:absolute;left:14px;bottom:calc(80px + env(safe-area-inset-bottom));z-index:3;min-height:40px;padding:0 16px;border-radius:999px;border:1px solid #3A3550;background:rgba(20,18,32,.85);color:#E9E2FF;font:inherit;font-size:14px;box-shadow:0 0 18px rgba(170,150,255,.18);cursor:pointer}
+#room:has(.sheet.on) .mtbtn{display:none}
+.mtwait{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:4;display:none;flex-direction:column;align-items:center;gap:8px;text-align:center;width:min(300px,86vw);padding:22px 18px;border-radius:20px;background:rgba(14,13,22,.92);border:1px solid #2E2A44}
+.mtwait.on{display:flex}
+.mtstar{width:46px;height:46px;position:relative}
+.mtstar::before{content:"";position:absolute;width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 10px 3px #CFC4FF;left:36px;top:6px;animation:mtfall 1.4s ease-in infinite}
+.mtstar::after{content:"";position:absolute;width:34px;height:2px;left:8px;top:22px;background:linear-gradient(90deg,transparent,#CFC4FF);transform:rotate(-35deg);opacity:.7;animation:mtfade 1.4s ease-in infinite}
+@keyframes mtfall{0%{transform:translate(0,0);opacity:1}100%{transform:translate(-30px,30px);opacity:0}}
+@keyframes mtfade{0%{opacity:.8}100%{opacity:0}}
+.mttime{font-size:13px;font-variant-numeric:tabular-nums;color:#E9E2FF;border:1px solid #3A3550;border-radius:999px;padding:4px 10px}
+.mttime.low{color:#FF9A8A;border-color:#6A3A3A}
+.mtbar{display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid #1F1F24}
+#meteor .b.them{border-color:#3A3550}
 .bottom{position:absolute;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:3}
 .bottom .btn{background:#1A1A1F;color:var(--ink);white-space:nowrap;padding:0 14px}
 #toChats{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
@@ -253,6 +266,8 @@ new MutationObserver(function(){if(!document.getElementById('splash')||document.
     </div>
   </div>
   <canvas id="cv" aria-label="켜진 빛들의 지도. 빛을 눌러 선택하세요."></canvas>
+  <button class="mtbtn" id="mtBtn" type="button" aria-label="별똥별: 무작위 10분 익명 대화">☄ 별똥별</button>
+  <div class="mtwait" id="mtWait" role="status" aria-live="polite"><span class="mtstar" aria-hidden="true"></span><p id="mtWaitTxt" style="margin:0;font-size:15px">별똥별을 찾는 중…</p><p style="margin:0;font-size:12px;color:var(--mute)">지금 빛이 켜진 사람 중 한 명과 10분 동안 익명으로 이야기해요</p><button class="btn" id="mtCancel" type="button" style="min-height:36px;margin-top:4px">그만 찾기</button></div>
   <div class="zoom"><button id="zIn" aria-label="확대">+</button><button id="zOut" aria-label="축소">−</button><button id="zFit" class="sm" aria-label="전체 보기">전체</button></div>
   <p class="empty" id="empty">아직 방에 당신의 빛뿐이에요.<br>링크를 공유해 다른 사람이 불을 켜면 여기에 나타나요.</p>
   <div class="sheet" id="meSheet" role="dialog" aria-label="내 설정">
@@ -370,6 +385,20 @@ new MutationObserver(function(){if(!document.getElementById('splash')||document.
   <div id="atBar" style="display:none;gap:6px;padding:8px 14px 0;overflow-x:auto"></div>
   <p class="cerr" id="gerr"></p>
   <form class="compose" id="gcompose"><label class="sr" for="gIn">메시지</label><input id="gIn" placeholder="모두에게, 또는 @아이디 로 귓말" autocomplete="off" maxlength="500"><button class="btn solid" type="submit">보내기</button></form>
+</section>
+
+<section id="meteor" class="screen" aria-label="별똥별 대화" style="position:relative">
+  <div class="head" style="padding:calc(12px + env(safe-area-inset-top)) 14px 12px;border-bottom:1px solid #1F1F24">
+    <button class="back" id="mtBack" aria-label="별똥별 나가기">←</button>
+    <span class="dot" id="mtDot" style="width:14px;height:14px"></span>
+    <div style="flex:1;min-width:0"><p style="margin:0;font-size:16px;font-weight:500">별똥별</p><p id="mtSub" style="margin:0;font-size:12px;color:var(--mute)"></p></div>
+    <span class="mttime" id="mtTime">10:00</span>
+  </div>
+  <div class="msgs" id="mtMsgs"></div>
+  <div class="mtbar" id="mtBar"><p id="mtState" style="margin:0;font-size:12px;color:var(--mute);flex:1;line-height:1.5"></p><button class="btn solid" id="mtOk" type="button" style="min-height:38px;flex:none">이어지기</button></div>
+  <p class="cerr" id="mtErr"></p>
+  <form class="compose" id="mtCompose"><label class="sr" for="mtIn">메시지</label><input id="mtIn" placeholder="이름 없이, 지금 이 순간의 한마디" autocomplete="off" maxlength="300"><button class="btn solid" type="submit">보내기</button></form>
+  <div class="compose" id="mtEnd" style="display:none"><button class="btn solid" id="mtHome" type="button" style="flex:1">지도로 돌아가기</button></div>
 </section>
 
 <section id="chat" class="screen" aria-label="1:1 대화" style="position:relative">
