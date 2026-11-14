@@ -369,10 +369,16 @@ $('cBack').onclick=()=>show('room');
 function setTab(t){S.ctab=t;[['tAll','all'],['tGroup','group'],['tOne','one']].forEach(([id,v])=>{$(id).classList.toggle('on',t===v);$(id).setAttribute('aria-pressed',t===v);});$('secGroup').style.display=(t==='all'||t==='group')?'flex':'none';$('secOne').style.display=(t==='all'||t==='one')?'flex':'none';$('secAdm').style.display=(t==='all'||t==='one')?'flex':'none';}
 $('tAll').onclick=()=>setTab('all');$('tGroup').onclick=()=>setTab('group');$('tOne').onclick=()=>setTab('one');
 function secHead(id,text,n){const h=$(id);h.textContent=text;if(n){h.append(el('span','n',n+'개'));}}
+S.phCache={};
+function getPhoto(k){if(k[0]==='s'||k in S.phCache)return S.phCache[k]||null;S.phCache[k]=null;db.ref('photos/'+k).get().then(sn=>{const v=sn.val();if(okImg(v)){S.phCache[k]=v;S.photos[k]=v;refreshOpenLists();}}).catch(()=>{delete S.phCache[k];});return null;}
+function avatarEl(k,g,sz,dim){const ph=getPhoto(k);const e=el('span');const c=COL[g]||'#fff';
+  if(ph)e.style.cssText='display:block;flex:none;width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:center/cover no-repeat url('+ph+');border:1.5px solid '+c+(dim?';opacity:.55':'');
+  else e.style.cssText='display:flex;align-items:center;justify-content:center;flex:none;width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:#1A1A1F;border:1.5px solid '+c+'88'+(dim?';opacity:.55':'');
+  if(!ph){const i=el('span');i.style.cssText=dotStyle(c,12,dim);e.append(i);}return e;}
 function renderList(){setTab(S.ctab);renderGroups();
   const L=$('list'),LF=$('listFr');L.textContent='';LF.textContent='';const rooms=oneRooms();const nf=rooms.filter(isFriend).length;$('oneFrHead').style.display=nf?'block':'none';$('oneLkHead').style.display=(rooms.length-nf)?'block':'none';$('noLinks').style.display=rooms.length?'none':'block';secHead('oneHead','1:1 대화',rooms.length);
   rooms.forEach(k=>{const o=findO(k);const p=o||S.P[k]||{g:'f'};const b=el('button','item');b.type='button';
-    const av=el('span','av');const d=el('span');d.style.cssText=dotStyle(COL[p.g],14,!o);const st=el('span','st '+(o?'on':'off'));av.append(d,st);
+    const av=el('span','av');const d=avatarEl(k,p.g,40,!o);const st=el('span','st '+(o?'on':'off'));av.append(d,st);
     const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1';const t=el('span','t',nickOf(k));
     const ms=S.dms[k]||[];const last=ms[ms.length-1];const s2=el('span','s',last?((last.me?'나: ':'')+last.text):(o?desc(o):'오프라인'));s2.style.cssText='white-space:nowrap;overflow:hidden;text-overflow:ellipsis';w.append(t,s2);b.append(av,w);
     const n=unreadOf(k);if(n)b.append(el('span','badge',String(n)));b.onclick=()=>{S.chatFrom='chats';openChat(k);};(isFriend(k)?LF:L).append(b);});}
