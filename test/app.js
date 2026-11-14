@@ -357,12 +357,12 @@ function setTab(t){S.ctab=t;[['tAll','all'],['tGroup','group'],['tOne','one']].f
 $('tAll').onclick=()=>setTab('all');$('tGroup').onclick=()=>setTab('group');$('tOne').onclick=()=>setTab('one');
 function secHead(id,text,n){const h=$(id);h.textContent=text;if(n){h.append(el('span','n',n+'개'));}}
 function renderList(){setTab(S.ctab);renderGroups();
-  const L=$('list');L.textContent='';const rooms=oneRooms();$('noLinks').style.display=rooms.length?'none':'block';secHead('oneHead','1:1 대화',rooms.length);
+  const L=$('list'),LF=$('listFr');L.textContent='';LF.textContent='';const rooms=oneRooms();const nf=rooms.filter(isFriend).length;$('oneFrHead').style.display=nf?'block':'none';$('oneLkHead').style.display=(rooms.length-nf)?'block':'none';$('noLinks').style.display=rooms.length?'none':'block';secHead('oneHead','1:1 대화',rooms.length);
   rooms.forEach(k=>{const o=findO(k);const p=o||S.P[k]||{g:'f'};const b=el('button','item');b.type='button';
     const av=el('span','av');const d=el('span');d.style.cssText=dotStyle(COL[p.g],14,!o);const st=el('span','st '+(o?'on':'off'));av.append(d,st);
-    const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1';const t=el('span','t',nickOf(k));t.append(el('span','tag'+(isFriend(k)?' fr':''),isFriend(k)?'친구':'이어진 빛'));
+    const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1';const t=el('span','t',nickOf(k));
     const ms=S.dms[k]||[];const last=ms[ms.length-1];const s2=el('span','s',last?((last.me?'나: ':'')+last.text):(o?desc(o):'오프라인'));s2.style.cssText='white-space:nowrap;overflow:hidden;text-overflow:ellipsis';w.append(t,s2);b.append(av,w);
-    const n=unreadOf(k);if(n)b.append(el('span','badge',String(n)));b.onclick=()=>{S.chatFrom='chats';openChat(k);};L.append(b);});}
+    const n=unreadOf(k);if(n)b.append(el('span','badge',String(n)));b.onclick=()=>{S.chatFrom='chats';openChat(k);};(isFriend(k)?LF:L).append(b);});}
 S.ltab='all';
 function setLTab(t){S.ltab=t;[['lAll','all'],['lLinked','linked'],['lAdm','adm']].forEach(([id,v])=>{$(id).classList.toggle('on',t===v);$(id).setAttribute('aria-pressed',t===v);});$('secLinked').style.display=(t==='all'||t==='linked')?'flex':'none';$('secAdm').style.display=(t==='all'||t==='adm')?'flex':'none';}
 $('lAll').onclick=()=>setLTab('all');$('lLinked').onclick=()=>setLTab('linked');$('lAdm').onclick=()=>setLTab('adm');
@@ -372,7 +372,10 @@ function renderLights(){setLTab(S.ltab);const L=$('linkedList');L.textContent=''
   renderAdm();}
 function showLights(){S.sel=null;$('sheet').classList.remove('on');$('meSheet').classList.remove('on');renderLights();show('lightsScr');}
 $('toLights').onclick=showLights;$('lBack').onclick=()=>show('room');
-function renderAdm(){const A=$('adm');A.textContent='';const adms=others().filter(o=>isAdmirer(o.key));secHead('admHead','나를 고른 빛',adms.length);$('noAdm').style.display=adms.length?'none':'block';$('admHint').style.display=adms.length?'block':'none';
+function renderMyPicks(){const M=$('myPickList');M.textContent='';const ps=others().filter(o=>picked(o.key)&&!isLinked(o.key));$('myPickHead').textContent='내가 선택한 빛'+(ps.length?' '+ps.length+'개':'');$('noMyPick').style.display=ps.length?'none':'block';
+  ps.forEach(o=>{const row=el('div','item');row.style.cursor='default';const d=el('span');d.style.cssText=dotStyle(COL[o.g],14);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;cursor:pointer';const left=pickLeft(o.key);w.append(el('span','t',label(o)),el('span','s',desc(o)+(left!=null?' · '+Math.max(1,Math.ceil(left/60000))+'분 남음':'')));w.onclick=()=>focusLight(o.key);
+    row.append(d,w,sbtn('취소',null,()=>{S.sel=o.key;$('sToggle').onclick();setTimeout(renderLights,300);}));M.append(row);});}
+function renderAdm(){renderMyPicks();const A=$('adm');A.textContent='';const adms=others().filter(o=>isAdmirer(o.key));$('admHead').textContent='나를 선택한 빛'+(adms.length?' '+adms.length+'개':'');$('noAdm').style.display=adms.length?'none':'block';$('admHint').style.display=adms.length?'block':'none';
   adms.forEach(o=>{const b=el('button','item swipe');b.type='button';const d=el('span');d.style.cssText=dotStyle(COL[o.g],14);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px';w.append(el('span','t',label(o)),el('span','s',desc(o)+' · 나를 골랐어요'));b.append(d,w);attachSwipe(b,()=>rejectAdmirer(o.key),()=>focusLight(o.key));A.append(b);});}
 function rejectAdmirer(k){if(k[0]==='s'){const b=BOTS.find(x=>x.key===k);if(b)b.picksMe=false;}else db.ref('likes/'+S.me+'/'+k).remove().catch(()=>{});toast(nickOf(k)+'님의 빛을 거절했어요');}
 function attachSwipe(e,onSwipe,onTap){let sx=0,sy=0,dx=0,on=false,moved=false,id=null;

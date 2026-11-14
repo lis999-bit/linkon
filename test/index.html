@@ -236,6 +236,9 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
   </div>
   <div id="secOne" class="col">
     <p class="sec" id="oneHead">1:1 대화</p>
+    <p class="lbl" id="oneFrHead" style="display:none">친구</p>
+    <div id="listFr" class="col"></div>
+    <p class="lbl" id="oneLkHead" style="display:none;margin-top:6px">이어진 빛</p>
     <div id="list" class="col"></div>
     <p id="noLinks" class="empty2">아직 1:1 대화방이 없어요. 이어진 빛이나 친구에게 말을 걸면 대화방이 생겨요.</p>
   </div>
@@ -244,17 +247,21 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 
 <section id="lightsScr" class="screen" aria-label="빛 목록">
   <div class="head"><button class="back" id="lBack" aria-label="지도로 돌아가기">←</button><h2>빛 목록</h2></div>
-  <div class="seg" style="align-self:flex-start"><button class="btn on" id="lAll" aria-pressed="true">전체</button><button class="btn" id="lLinked" aria-pressed="false">이어진 빛</button><button class="btn" id="lAdm" aria-pressed="false">나를 고른 빛</button></div>
+  <div class="seg" style="align-self:flex-start"><button class="btn on" id="lAll" aria-pressed="true">전체</button><button class="btn" id="lLinked" aria-pressed="false">이어진 빛</button><button class="btn" id="lAdm" aria-pressed="false">기다리는 빛</button></div>
   <div id="secLinked" class="col">
     <p class="sec" id="linkedHead">이어진 빛</p>
     <div id="linkedList" class="col"></div>
     <p id="noLinked" class="empty2">아직 이어진 빛이 없어요. 지도에서 마음 가는 빛의 스위치를 켜 보세요. 서로 고르면 여기에 나타나요.</p>
   </div>
   <div id="secAdm" class="col">
-    <p class="sec" id="admHead">나를 고른 빛</p>
-    <p class="lbl" id="admHint">옆으로 밀면 거절 · 누르면 지도에서 보기</p>
+    <p class="sec">선택을 기다리는 빛</p>
+    <p class="lbl" id="admHead" style="margin-top:4px">나를 선택한 빛</p>
+    <p class="lbl" id="admHint">옆으로 밀면 거절 · 누르면 지도에서 보기 · 10분이 지나면 사라져요</p>
     <div id="adm" class="col"></div>
-    <p id="noAdm" class="empty2">지금 나를 고른 빛이 없어요.</p>
+    <p id="noAdm" class="empty2">지금 나를 선택한 빛이 없어요.</p>
+    <p class="lbl" id="myPickHead" style="margin-top:8px">내가 선택한 빛</p>
+    <div id="myPickList" class="col"></div>
+    <p id="noMyPick" class="empty2">상대의 응답을 기다리는 빛이 없어요.</p>
   </div>
 </section>
 
