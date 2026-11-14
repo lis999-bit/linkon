@@ -87,6 +87,9 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .tag{font-size:11px;border-radius:999px;padding:1px 8px;border:1px solid var(--line);color:var(--mute);margin-left:6px;font-weight:400;vertical-align:1px}
 .tag.fr{color:#9FE1CB;border-color:#1D9E75}
 .tag.ow{color:#FAC775}
+.cat{margin:10px 0 0;font-size:13px;color:var(--ink);font-weight:500;display:flex;align-items:center;gap:6px}
+.cat .n{color:var(--mute);font-weight:400;font-size:12px}
+.chip.on{background:var(--ink);color:var(--bg);border:0;font-weight:500}
 .badge{margin-left:auto;background:var(--f);color:var(--bg);font-size:12px;font-weight:700;border-radius:999px;padding:2px 8px;flex:none}
 .on-dot{font-size:12px;color:#9FE1CB}.off-dot{font-size:12px;color:var(--dim)}
 .av{position:relative;flex:none;display:inline-block}
@@ -245,7 +248,9 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
   <p id="frSum" class="hint"></p>
   <p class="lbl" id="inHead" style="display:none">받은 친구 신청</p><div id="inList" class="col"></div>
   <p class="lbl" id="outHead" style="display:none">보낸 친구 신청 · 상대가 수락하면 친구가 돼요</p><div id="outList" class="col"></div>
-  <p class="lbl" id="frHead" style="display:none">친구</p><div id="frList" class="col"></div>
+  <div id="frHead" style="display:none;align-items:center;justify-content:space-between;margin-top:4px"><p class="lbl">친구</p><button class="sbtn" id="catBtn" type="button">분류 관리</button></div>
+  <div id="catPanel" class="col" style="display:none;background:#121216;border:1px solid var(--line);border-radius:16px;padding:12px"></div>
+  <div id="frList" class="col"></div>
   <p id="frEmpty" class="empty2">아직 친구가 없어요. 친구 신청은 서로 이어진 빛끼리만 할 수 있어요. 이어진 빛과 대화하다가 오른쪽 위의 "친구 신청"을 눌러 보세요.</p>
 </section>
 
