@@ -55,6 +55,8 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .bottom .btn{background:#1A1A1F;color:var(--ink);white-space:nowrap;padding:0 14px}
 #toChats{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 #lightOff{background:transparent!important;color:var(--mute)!important}
+.bottom .btn{padding:0 12px}
+#toLights,#toFriends{flex:none}
 .vsw{position:relative;display:flex;width:184px;height:52px;border-radius:999px;background:#16161B;border:1px solid var(--line);padding:5px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer;z-index:6;pointer-events:auto}
 .vk{position:absolute;top:5px;left:5px;width:86px;height:40px;border-radius:999px;background:var(--ink);transition:transform .22s ease}
 .vsw.drag .vk{transition:none}
@@ -72,7 +74,7 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .toast.on{opacity:1}
 .notice{position:fixed;left:50%;width:min(456px,calc(100% - 24px));top:calc(78px + env(safe-area-inset-top));display:flex;align-items:center;gap:10px;background:#1C1C22;border:1px solid #3A3934;border-radius:16px;padding:10px 10px 10px 14px;z-index:30;transform:translate(-50%,-160%);opacity:0;transition:transform .45s,opacity .45s}
 .notice.on{transform:translate(-50%,0);opacity:1}
-#chats,#friends,#gnew{flex-direction:column;padding:calc(16px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom));gap:12px}
+#chats,#friends,#gnew,#lightsScr{flex-direction:column;padding:calc(16px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom));gap:12px}
 #chat,#gchat{flex-direction:column;height:100vh;height:100dvh}
 .head{display:flex;align-items:center;gap:10px}
 .head h2{margin:0;font-size:20px;font-weight:500}
@@ -87,6 +89,14 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .tag{font-size:11px;border-radius:999px;padding:1px 8px;border:1px solid var(--line);color:var(--mute);margin-left:6px;font-weight:400;vertical-align:1px}
 .tag.fr{color:#9FE1CB;border-color:#1D9E75}
 .tag.ow{color:#FAC775}
+.cat{margin:10px 0 0;font-size:13px;color:var(--ink);font-weight:500;display:flex;align-items:center;gap:6px}
+.cat .n{color:var(--mute);font-weight:400;font-size:12px}
+.chip.on{background:var(--ink);color:var(--bg);border:0;font-weight:500}
+.grip{width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--mute);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;flex:none}
+.ghost{position:fixed;z-index:60;pointer-events:none;opacity:.95;transform:scale(1.03);box-shadow:0 10px 30px rgba(0,0,0,.6);border-radius:16px}
+.catbox{border-radius:16px;transition:background .15s,outline-color .15s;outline:1.5px dashed transparent;outline-offset:4px}
+.catbox.drop{background:#16161B;outline-color:#9FE1CB}
+.dropzone{min-height:52px;border:1px dashed #3A3934;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--dim)}
 .badge{margin-left:auto;background:var(--f);color:var(--bg);font-size:12px;font-weight:700;border-radius:999px;padding:2px 8px;flex:none}
 .on-dot{font-size:12px;color:#9FE1CB}.off-dot{font-size:12px;color:var(--dim)}
 .av{position:relative;flex:none;display:inline-block}
@@ -100,6 +110,8 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .who{font-size:12px;color:var(--mute);margin:0 0 -6px 4px}
 .who.r{align-self:flex-end;margin:0 4px -6px 0}
 .who.w{color:#A99BF0}
+.mrow2{display:flex;align-items:flex-start;gap:10px;align-self:flex-start;max-width:86%}
+.who2{font-size:12px;color:var(--mute);margin-left:2px}
 .sys{align-self:center;font-size:12px;color:var(--dim);text-align:center;line-height:1.6;margin:0}
 .compose{display:flex;gap:8px;padding:10px 14px calc(14px + env(safe-area-inset-bottom));border-top:1px solid #1F1F24}
 .compose input{flex:1;min-height:44px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:0 16px;font-size:15px;min-width:0}
@@ -121,6 +133,9 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .big img{width:240px;height:240px;border-radius:50%;object-fit:cover}
 .swipe{touch-action:pan-y;transition:transform .25s,opacity .25s,max-height .3s;max-height:140px;overflow:hidden}
 .swipe.drag{transition:none}
+#splash{position:fixed;inset:0;z-index:100;background:#07070a;transition:opacity .6s ease,visibility .6s}
+#splash.out{opacity:0;visibility:hidden}
+#spc{display:block;width:100%;height:100%}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -129,6 +144,37 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 <script src="firebase-config.js"></script>
 </head>
 <body>
+<div id="splash" aria-hidden="true"><canvas id="spc"></canvas></div>
+<script>
+(function(){var c=document.getElementById('spc');if(!c)return;var x=c.getContext('2d'),W,H,D,run=true;
+function sz(){D=window.devicePixelRatio||1;W=innerWidth;H=innerHeight;c.width=W*D;c.height=H*D;x.setTransform(D,0,0,D,0,0);}sz();addEventListener('resize',sz);
+var K=Math.min(1.25,Math.max(.75,Math.min(innerWidth,innerHeight)/390));
+var sats=[{r:112,inc:.42,node:.45,sp:.6,ph:0,c:[255,190,110],s:16},{r:146,inc:.3,node:-.55,sp:.4,ph:2.1,c:[120,168,255],s:17},{r:128,inc:.62,node:1.25,sp:.5,ph:4.0,c:[255,184,107],s:13},{r:160,inc:.5,node:-1.3,sp:.33,ph:1.0,c:[120,168,255],s:12}];
+var stars=[];for(var i=0;i<90;i++){var u=Math.random()*2-1,th=Math.random()*6.283,rr=380+Math.random()*420;stars.push([Math.sqrt(1-u*u)*Math.cos(th)*rr,u*rr,Math.sqrt(1-u*u)*Math.sin(th)*rr,Math.random()*1.4+.4,Math.random()*6.28]);}
+function rot(p,inc,node,yaw){var X=p[0],Y=p[1],Z=p[2];var y1=Y*Math.cos(inc)-Z*Math.sin(inc),z1=Y*Math.sin(inc)+Z*Math.cos(inc);var x2=X*Math.cos(node)-y1*Math.sin(node),y2=X*Math.sin(node)+y1*Math.cos(node);var x3=x2*Math.cos(yaw)+z1*Math.sin(yaw),z3=-x2*Math.sin(yaw)+z1*Math.cos(yaw);return [x3,y2,z3];}
+function pr(p){var f=520,s=f/(f+p[2]);return [W/2+p[0]*s*K,H*0.47+p[1]*s*K,s];}
+function ball(px,py,r,col,a,glow,dk){dk=dk||.62;var g=x.createRadialGradient(px,py,0,px,py,r*glow);g.addColorStop(0,'rgba('+col+','+(.6*a)+')');g.addColorStop(1,'rgba('+col+',0)');x.fillStyle=g;x.beginPath();x.arc(px,py,r*glow,0,7);x.fill();
+  var h=x.createRadialGradient(px-r*.35,py-r*.4,r*.1,px,py,r);h.addColorStop(0,'rgba(255,255,250,'+a+')');h.addColorStop(.45,'rgba('+col+','+a+')');h.addColorStop(1,'rgba('+col.split(',').map(function(v){return Math.round(v*dk)}).join(',')+','+a+')');x.fillStyle=h;x.beginPath();x.arc(px,py,r,0,7);x.fill();}
+function frame(ms){if(!run)return;var t=ms/1000;x.clearRect(0,0,W,H);x.fillStyle='#07070a';x.fillRect(0,0,W,H);var yaw=t*.12;
+  stars.forEach(function(s){var p=rot([s[0],s[1],s[2]],.3,0,yaw*.4);if(p[2]<-400)return;var q=pr(p);var a=(.4+.4*Math.sin(t*1.3+s[4]))*Math.min(1,q[2]);if(a<=0)return;x.fillStyle='rgba(237,235,228,'+a+')';x.beginPath();x.arc(q[0],q[1],s[3]*q[2],0,7);x.fill();});
+  var items=[];
+  sats.forEach(function(o){var path=[];for(var k=0;k<=64;k++){var a=k/64*6.283;path.push(pr(rot([o.r*Math.cos(a),0,o.r*Math.sin(a)],o.inc,o.node,yaw)));}
+    x.strokeStyle='rgba('+o.c.join(',')+',0.24)';x.lineWidth=1;x.beginPath();path.forEach(function(q,i){i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1]);});x.stroke();
+    var a=o.ph+t*o.sp,p=rot([o.r*Math.cos(a),0,o.r*Math.sin(a)],o.inc,o.node,yaw);items.push({z:p[2],q:pr(p),o:o});});
+  var sun=pr([0,0,0]),sr=44*K*(1+.04*Math.sin(t*2.4));
+  function line(it){var a=Math.max(.35,Math.min(.9,.7-it.z/600));var g=x.createLinearGradient(sun[0],sun[1],it.q[0],it.q[1]);g.addColorStop(0,'rgba(255,246,224,'+a+')');g.addColorStop(1,'rgba('+it.o.c.join(',')+','+a+')');x.strokeStyle=g;x.lineWidth=2.2*it.q[2];x.beginPath();x.moveTo(sun[0],sun[1]);x.lineTo(it.q[0],it.q[1]);x.stroke();}
+  function sat(it){var d=it.q[2],a=Math.max(.75,Math.min(1,d*1.1));ball(it.q[0],it.q[1],it.o.s*K*d*(1+.08*Math.sin(t*3+it.o.ph)),it.o.c.join(','),a,3.2,.7);}
+  items.sort(function(a,b){return b.z-a.z});
+  items.filter(function(i){return i.z>0}).forEach(function(i){line(i);sat(i);});
+  var halo=x.createRadialGradient(sun[0],sun[1],sr*.6,sun[0],sun[1],sr*4.2);halo.addColorStop(0,'rgba(255,240,205,'+(.55+.1*Math.sin(t*2.4))+')');halo.addColorStop(.45,'rgba(255,190,110,.18)');halo.addColorStop(1,'rgba(143,184,255,0)');x.fillStyle=halo;x.beginPath();x.arc(sun[0],sun[1],sr*4.2,0,7);x.fill();
+  ball(sun[0],sun[1],sr,'255,238,196',1,1.8,.9);
+  items.filter(function(i){return i.z<=0}).forEach(function(i){line(i);sat(i);});
+  requestAnimationFrame(frame);}
+var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce){run=true;frame(0);run=false;}else requestAnimationFrame(frame);
+new MutationObserver(function(){if(!document.getElementById('splash')||document.getElementById('splash').classList.contains('out'))setTimeout(function(){run=false;},700);}).observe(document.getElementById('splash'),{attributes:true});
+})();
+</script>
 <div class="app">
 
 <section id="setup" class="screen" aria-label="설정 필요">
@@ -163,11 +209,7 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 <section id="off" class="screen" aria-label="불 켜기">
   <p class="lbl">링크온</p>
   <h1 id="offTitle">불을 켜 볼까요?</h1>
-  <p class="hint" id="offSub">지금 있는 곳에 당신의 빛이 켜져요.<br>정확한 위치는 드러나지 않아요.</p>
-  <div class="col" id="regionBox" style="display:none;width:100%;max-width:280px">
-    <label class="lbl" for="region">위치를 받을 수 없어서, 지금 있는 곳을 골라 주세요</label>
-    <select class="field" id="region"></select>
-  </div>
+  <p class="hint" id="offSub">GPS로 지금 있는 곳에 당신의 빛이 켜져요.<br>정확한 위치는 드러나지 않고, 동네 정도로만 보여요.</p>
   <button class="switch" id="switch" aria-label="스위치를 올려 불 켜기"><span></span></button>
   <p class="hint" id="offHint">스위치를 올려 주세요</p>
   <button class="btn instBtn" type="button" style="display:none;align-self:center;min-height:40px;font-size:13px;color:var(--ink)">링크온 앱으로 설치하기</button>
@@ -182,13 +224,18 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
       <button class="mebtn" id="meBtn" aria-label="내 설정"><span id="meAv"></span><span id="meLbl">내 설정</span></button>
       <button class="btn" id="sampleBtn" aria-pressed="true" style="min-height:30px;margin-top:6px;padding:0 12px;font-size:12px;background:#0d0d11">샘플 빛 보는 중</button>
     </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
     <div class="vsw" id="vsw" role="switch" aria-checked="false" aria-label="보기 전환: 전체 또는 내 빛들" tabindex="0"><span class="vk" id="vk"></span><span class="vl" data-v="all">전체</span><span class="vl" data-v="mine">내 빛들</span></div>
+      <button class="mebtn" id="radBtn" type="button" aria-expanded="false" style="padding:0 14px;margin:0">반경 · 전체</button>
+      <div id="radPanel" style="display:none;flex-wrap:wrap;justify-content:flex-end;gap:6px;max-width:220px"></div>
+    </div>
   </div>
   <canvas id="cv" aria-label="켜진 빛들의 지도. 빛을 눌러 선택하세요."></canvas>
   <div class="zoom"><button id="zIn" aria-label="확대">+</button><button id="zOut" aria-label="축소">−</button><button id="zFit" class="sm" aria-label="전체 보기">전체</button></div>
   <p class="empty" id="empty">아직 방에 당신의 빛뿐이에요.<br>링크를 공유해 다른 사람이 불을 켜면 여기에 나타나요.</p>
   <div class="sheet" id="meSheet" role="dialog" aria-label="내 설정">
     <div style="display:flex;align-items:center;gap:12px"><p style="margin:0;font-size:16px;font-weight:500;flex:1" id="meName">내 설정</p><button class="back" id="meClose" aria-label="닫기">×</button></div>
+    <div class="item" style="cursor:default;min-height:56px;padding:10px 14px"><span class="dot" style="width:14px;height:14px;background:#fff;box-shadow:0 0 14px 3px #ffffff66"></span><span style="display:flex;flex-direction:column;gap:2px;flex:1"><span class="t" id="meLoc">내 위치</span><span class="s" id="meLocSub"></span></span></div>
     <div style="display:flex;align-items:center;gap:16px">
       <label for="photoIn" class="pick" id="pick" aria-label="프로필 사진 고르기"><span id="pickTxt">사진</span></label>
       <input type="file" id="photoIn" accept="image/*" class="sr">
@@ -214,6 +261,7 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
   </div>
   <div class="bottom">
     <button class="btn" id="toChats">대화방</button>
+    <button class="btn" id="toLights">빛</button>
     <button class="btn" id="toFriends">친구</button>
     <button class="btn" id="lightOff">불 끄기</button>
   </div>
@@ -233,14 +281,28 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
   </div>
   <div id="secOne" class="col">
     <p class="sec" id="oneHead">1:1 대화</p>
+    <p class="lbl" id="oneFrHead" style="display:none">친구</p>
+    <div id="listFr" class="col"></div>
+    <p class="lbl" id="oneLkHead" style="display:none;margin-top:6px">이어진 빛</p>
     <div id="list" class="col"></div>
-    <p id="noLinks" class="empty2">아직 1:1 대화방이 없어요. 방에서 마음 가는 빛의 스위치를 켜 보세요. 서로 고르면 대화방이 생겨요.</p>
-  </div>
-  <div id="secAdm" class="col">
-    <p class="lbl" id="admHead" style="margin-top:4px;display:none">나를 고른 빛 · 옆으로 밀면 거절</p>
-    <div id="adm" class="col"></div>
+    <p id="noLinks" class="empty2">아직 1:1 대화방이 없어요. 이어진 빛이나 친구에게 말을 걸면 대화방이 생겨요.</p>
   </div>
   <p style="margin:auto 0 0;font-size:12px;line-height:1.6;color:var(--dim)">대화 기록은 서버에 저장돼서, 다시 로그인해도 그대로 남아 있어요.</p>
+</section>
+
+<section id="lightsScr" class="screen" aria-label="빛 목록">
+  <div class="head"><button class="back" id="lBack" aria-label="지도로 돌아가기">←</button><h2>빛 목록</h2></div>
+  <div class="seg" style="align-self:flex-start"><button class="btn on" id="lAll" aria-pressed="true">전체</button><button class="btn" id="lLinked" aria-pressed="false">이어진 빛</button><button class="btn" id="lAdm" aria-pressed="false">기다리는 빛</button></div>
+  <div id="secLinked" class="col">
+    <p class="sec" id="linkedHead">이어진 빛</p>
+    <div id="linkedList" class="col"></div>
+  </div>
+  <div id="secAdm" class="col">
+    <p class="sec" id="myPickHead">내가 선택한 빛</p>
+    <div id="myPickList" class="col"></div>
+    <p class="sec" id="admHead">나를 선택한 빛</p>
+    <div id="adm" class="col"></div>
+  </div>
 </section>
 
 <section id="friends" class="screen" aria-label="친구">
@@ -248,7 +310,9 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
   <p id="frSum" class="hint"></p>
   <p class="lbl" id="inHead" style="display:none">받은 친구 신청</p><div id="inList" class="col"></div>
   <p class="lbl" id="outHead" style="display:none">보낸 친구 신청 · 상대가 수락하면 친구가 돼요</p><div id="outList" class="col"></div>
-  <p class="lbl" id="frHead" style="display:none">친구</p><div id="frList" class="col"></div>
+  <div id="frHead" style="display:none;align-items:center;justify-content:space-between;margin-top:4px"><p class="lbl">친구</p><button class="sbtn" id="catBtn" type="button">분류 관리</button></div>
+  <div id="catPanel" class="col" style="display:none;background:#121216;border:1px solid var(--line);border-radius:16px;padding:12px"></div>
+  <div id="frList" class="col"></div>
   <p id="frEmpty" class="empty2">아직 친구가 없어요. 친구 신청은 서로 이어진 빛끼리만 할 수 있어요. 이어진 빛과 대화하다가 오른쪽 위의 "친구 신청"을 눌러 보세요.</p>
 </section>
 
@@ -296,7 +360,7 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 <div class="notice" id="notice" role="status"><span class="dot" id="nDot" style="width:12px;height:12px"></span><span id="nText" style="flex:1;font-size:14px;line-height:1.4"></span><button class="btn solid" id="nView" style="min-height:36px;padding:0 14px;font-size:13px">보기</button></div>
 </div>
 
-<script src="app.js"></script>
+<script>document.write('<script src="app.js?t='+Date.now()+'"><\/script>')</script>
 <script>
 (function(){var dp=null;var btns=function(){return document.querySelectorAll('.instBtn');};
 var standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;

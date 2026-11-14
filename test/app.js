@@ -3,7 +3,7 @@
 const SPLASH_AT=Date.now();
 function hideSplash(){const sp=document.getElementById('splash');if(!sp||sp.classList.contains('out'))return;setTimeout(()=>{sp.classList.add('out');setTimeout(()=>sp.remove(),700);},Math.max(0,1600-(Date.now()-SPLASH_AT)));}
 setTimeout(hideSplash,6000);
-const APP_VERSION='2026.11.14-1';
+const APP_VERSION='2026.11.14-2';
 (function(){let shown=false;async function check(){if(shown)return;try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();if(j&&j.v&&j.v!==APP_VERSION){shown=true;document.getElementById('upd').classList.add('on');}}catch(e){}}
   document.getElementById('updGo').onclick=()=>location.reload();setInterval(check,60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')check();});setTimeout(check,5000);})();
 const $=id=>document.getElementById(id);
