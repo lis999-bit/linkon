@@ -126,23 +126,9 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .big img{width:240px;height:240px;border-radius:50%;object-fit:cover}
 .swipe{touch-action:pan-y;transition:transform .25s,opacity .25s,max-height .3s;max-height:140px;overflow:hidden}
 .swipe.drag{transition:none}
-#splash{position:fixed;inset:0;z-index:100;background:#07070a;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease,visibility .6s;overflow:hidden}
+#splash{position:fixed;inset:0;z-index:100;background:#07070a;transition:opacity .6s ease,visibility .6s}
 #splash.out{opacity:0;visibility:hidden}
-#splash .sp-parts i{position:absolute;width:3px;height:3px;border-radius:50%;opacity:0;animation:spTw 8s ease-in-out infinite}
-@keyframes spTw{0%,100%{opacity:0;transform:translateY(0) scale(.6)}50%{opacity:.8;transform:translateY(-18px) scale(1.2)}}
-.sp-orb{position:relative;width:320px;height:320px}
-.sp-ring{position:absolute;inset:0;animation:spRot 18s linear infinite}
-@keyframes spRot{to{transform:rotate(360deg)}}
-.sp-arm{position:absolute;left:50%;top:50%;width:var(--l);height:0;transform-origin:0 0}
-.sp-line{position:absolute;left:0;top:-1px;height:2px;width:100%;background:linear-gradient(90deg,rgba(255,246,224,.5),var(--c));transform-origin:0 50%;animation:spReach 3.2s ease-in-out infinite;animation-delay:inherit;opacity:.55}
-@keyframes spReach{0%,100%{transform:scaleX(.82)}50%{transform:scaleX(1)}}
-.sp-dot{position:absolute;right:-14px;top:-14px;width:28px;height:28px;border-radius:50%;background:var(--c);box-shadow:0 0 22px 6px color-mix(in srgb,var(--c) 55%,transparent);animation:spPulse 2.6s ease-in-out infinite}
-@keyframes spPulse{0%,100%{transform:scale(.85);filter:brightness(.9)}50%{transform:scale(1.12);filter:brightness(1.25)}}
-.sp-sun{position:absolute;left:50%;top:50%;width:84px;height:84px;margin:-42px 0 0 -42px;border-radius:50%;background:#FFF6E0;box-shadow:0 0 50px 18px rgba(255,236,200,.45),0 0 120px 50px rgba(255,184,107,.18);animation:spSun 2.4s ease-in-out infinite}
-@keyframes spSun{0%,100%{transform:scale(1);box-shadow:0 0 50px 18px rgba(255,236,200,.4),0 0 120px 50px rgba(255,184,107,.15)}50%{transform:scale(1.07);box-shadow:0 0 70px 26px rgba(255,236,200,.6),0 0 160px 70px rgba(143,184,255,.18)}}
-.sp-name{margin:8px 0 0;font-size:20px;letter-spacing:.2em;color:#EDEBE4;opacity:0;animation:spIn 1.2s .4s ease forwards}
-@keyframes spIn{to{opacity:.9}}
-@media (prefers-reduced-motion:reduce){#splash *{animation:none!important}.sp-name{opacity:.9}}
+#spc{display:block;width:100%;height:100%}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -151,7 +137,37 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 <script src="firebase-config.js"></script>
 </head>
 <body>
-<div id="splash" aria-hidden="true"><div class="sp-parts"><i style="left:46%;top:27%;animation-delay:-3.2s;animation-duration:6.3s;background:#FFF6E0"></i><i style="left:17%;top:54%;animation-delay:-4.7s;animation-duration:11.5s;background:#FFB86B"></i><i style="left:9%;top:19%;animation-delay:-3.5s;animation-duration:6.4s;background:#FFB86B"></i><i style="left:75%;top:62%;animation-delay:-0.5s;animation-duration:9.4s;background:#FFB86B"></i><i style="left:85%;top:88%;animation-delay:-4.7s;animation-duration:6.4s;background:#FFF6E0"></i><i style="left:55%;top:14%;animation-delay:-7.8s;animation-duration:6.3s;background:#FFB86B"></i><i style="left:42%;top:61%;animation-delay:-1.2s;animation-duration:6.7s;background:#8FB8FF"></i><i style="left:76%;top:31%;animation-delay:-0.8s;animation-duration:9.4s;background:#FFB86B"></i><i style="left:52%;top:20%;animation-delay:-4.4s;animation-duration:6.4s;background:#FFB86B"></i><i style="left:84%;top:34%;animation-delay:-4.0s;animation-duration:9.2s;background:#8FB8FF"></i><i style="left:64%;top:82%;animation-delay:-7.4s;animation-duration:8.2s;background:#FFB86B"></i><i style="left:28%;top:39%;animation-delay:-0.7s;animation-duration:7.8s;background:#8FB8FF"></i><i style="left:48%;top:65%;animation-delay:-2.3s;animation-duration:11.9s;background:#FFB86B"></i><i style="left:70%;top:61%;animation-delay:-1.3s;animation-duration:8.1s;background:#8FB8FF"></i><i style="left:58%;top:13%;animation-delay:-7.7s;animation-duration:6.5s;background:#FFF6E0"></i><i style="left:78%;top:48%;animation-delay:-2.7s;animation-duration:8.1s;background:#8FB8FF"></i><i style="left:79%;top:66%;animation-delay:-0.6s;animation-duration:6.6s;background:#8FB8FF"></i><i style="left:65%;top:16%;animation-delay:-0.5s;animation-duration:10.2s;background:#FFF6E0"></i></div><div class="sp-orb"><div class="sp-ring"><div class="sp-arm" style="transform:rotate(-145deg);--c:#FFB86B;--l:120px;animation-delay:0.0s"><span class="sp-line"></span><span class="sp-dot" style="animation-delay:0.0s"></span></div><div class="sp-arm" style="transform:rotate(-35deg);--c:#8FB8FF;--l:128px;animation-delay:0.6s"><span class="sp-line"></span><span class="sp-dot" style="animation-delay:0.6s"></span></div><div class="sp-arm" style="transform:rotate(35deg);--c:#FFB86B;--l:112px;animation-delay:1.2s"><span class="sp-line"></span><span class="sp-dot" style="animation-delay:1.2s"></span></div><div class="sp-arm" style="transform:rotate(145deg);--c:#8FB8FF;--l:118px;animation-delay:1.8s"><span class="sp-line"></span><span class="sp-dot" style="animation-delay:1.8s"></span></div></div><div class="sp-sun"></div></div><p class="sp-name">링크온</p></div>
+<div id="splash" aria-hidden="true"><canvas id="spc"></canvas></div>
+<script>
+(function(){var c=document.getElementById('spc');if(!c)return;var x=c.getContext('2d'),W,H,D,run=true;
+function sz(){D=window.devicePixelRatio||1;W=innerWidth;H=innerHeight;c.width=W*D;c.height=H*D;x.setTransform(D,0,0,D,0,0);}sz();addEventListener('resize',sz);
+var K=Math.min(1.25,Math.max(.75,Math.min(innerWidth,innerHeight)/390));
+var sats=[{r:112,inc:.42,node:.45,sp:.6,ph:0,c:[255,184,107],s:15},{r:146,inc:.3,node:-.55,sp:.4,ph:2.1,c:[143,184,255],s:17},{r:128,inc:.62,node:1.25,sp:.5,ph:4.0,c:[255,184,107],s:13},{r:160,inc:.5,node:-1.3,sp:.33,ph:1.0,c:[143,184,255],s:12}];
+var stars=[];for(var i=0;i<90;i++){var u=Math.random()*2-1,th=Math.random()*6.283,rr=380+Math.random()*420;stars.push([Math.sqrt(1-u*u)*Math.cos(th)*rr,u*rr,Math.sqrt(1-u*u)*Math.sin(th)*rr,Math.random()*1.4+.4,Math.random()*6.28]);}
+function rot(p,inc,node,yaw){var X=p[0],Y=p[1],Z=p[2];var y1=Y*Math.cos(inc)-Z*Math.sin(inc),z1=Y*Math.sin(inc)+Z*Math.cos(inc);var x2=X*Math.cos(node)-y1*Math.sin(node),y2=X*Math.sin(node)+y1*Math.cos(node);var x3=x2*Math.cos(yaw)+z1*Math.sin(yaw),z3=-x2*Math.sin(yaw)+z1*Math.cos(yaw);return [x3,y2,z3];}
+function pr(p){var f=520,s=f/(f+p[2]);return [W/2+p[0]*s*K,H*0.47+p[1]*s*K,s];}
+function ball(px,py,r,col,a,glow){var g=x.createRadialGradient(px,py,0,px,py,r*glow);g.addColorStop(0,'rgba('+col+','+(.35*a)+')');g.addColorStop(1,'rgba('+col+',0)');x.fillStyle=g;x.beginPath();x.arc(px,py,r*glow,0,7);x.fill();
+  var h=x.createRadialGradient(px-r*.35,py-r*.4,r*.1,px,py,r);h.addColorStop(0,'rgba(255,255,250,'+a+')');h.addColorStop(.35,'rgba('+col+','+a+')');h.addColorStop(1,'rgba('+col.split(',').map(function(v){return Math.round(v*.45)}).join(',')+','+a+')');x.fillStyle=h;x.beginPath();x.arc(px,py,r,0,7);x.fill();}
+function frame(ms){if(!run)return;var t=ms/1000;x.clearRect(0,0,W,H);x.fillStyle='#07070a';x.fillRect(0,0,W,H);var yaw=t*.12;
+  stars.forEach(function(s){var p=rot([s[0],s[1],s[2]],.3,0,yaw*.4);if(p[2]<-400)return;var q=pr(p);var a=(.25+.35*Math.sin(t*1.3+s[4]))*Math.min(1,q[2]);if(a<=0)return;x.fillStyle='rgba(237,235,228,'+a+')';x.beginPath();x.arc(q[0],q[1],s[3]*q[2],0,7);x.fill();});
+  var items=[];
+  sats.forEach(function(o){var path=[];for(var k=0;k<=64;k++){var a=k/64*6.283;path.push(pr(rot([o.r*Math.cos(a),0,o.r*Math.sin(a)],o.inc,o.node,yaw)));}
+    x.strokeStyle='rgba('+o.c.join(',')+',0.10)';x.lineWidth=1;x.beginPath();path.forEach(function(q,i){i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1]);});x.stroke();
+    var a=o.ph+t*o.sp,p=rot([o.r*Math.cos(a),0,o.r*Math.sin(a)],o.inc,o.node,yaw);items.push({z:p[2],q:pr(p),o:o});});
+  var sun=pr([0,0,0]),sr=44*K*(1+.04*Math.sin(t*2.4));
+  function line(it){var a=Math.max(.15,Math.min(.6,.45-it.z/600));var g=x.createLinearGradient(sun[0],sun[1],it.q[0],it.q[1]);g.addColorStop(0,'rgba(255,246,224,'+a+')');g.addColorStop(1,'rgba('+it.o.c.join(',')+','+a+')');x.strokeStyle=g;x.lineWidth=1.6*it.q[2];x.beginPath();x.moveTo(sun[0],sun[1]);x.lineTo(it.q[0],it.q[1]);x.stroke();}
+  function sat(it){var d=it.q[2],a=Math.max(.45,Math.min(1,d*1.05));ball(it.q[0],it.q[1],it.o.s*K*d*(1+.08*Math.sin(t*3+it.o.ph)),it.o.c.join(','),a,2.6);}
+  items.sort(function(a,b){return b.z-a.z});
+  items.filter(function(i){return i.z>0}).forEach(function(i){line(i);sat(i);});
+  var halo=x.createRadialGradient(sun[0],sun[1],sr*.6,sun[0],sun[1],sr*4.2);halo.addColorStop(0,'rgba(255,236,200,'+(.32+.08*Math.sin(t*2.4))+')');halo.addColorStop(.5,'rgba(255,184,107,.08)');halo.addColorStop(1,'rgba(143,184,255,0)');x.fillStyle=halo;x.beginPath();x.arc(sun[0],sun[1],sr*4.2,0,7);x.fill();
+  ball(sun[0],sun[1],sr,'255,240,214',1,1.6);
+  items.filter(function(i){return i.z<=0}).forEach(function(i){line(i);sat(i);});
+  requestAnimationFrame(frame);}
+var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce){run=true;frame(0);run=false;}else requestAnimationFrame(frame);
+new MutationObserver(function(){if(!document.getElementById('splash')||document.getElementById('splash').classList.contains('out'))setTimeout(function(){run=false;},700);}).observe(document.getElementById('splash'),{attributes:true});
+})();
+</script>
 <div class="app">
 
 <section id="setup" class="screen" aria-label="설정 필요">
