@@ -354,7 +354,12 @@ $('chFr').onclick=async()=>{const k=S.chatWith;if(!k||isFriend(k)||isOut(k)||isN
   try{await db.ref().update(u);toast('친구를 신청했어요. 상대가 수락하면 친구가 돼요');}catch(e){toast('친구 신청을 보내지 못했어요');}};
 function renderMsgs(){const M=$('msgs');M.textContent='';const k=S.chatWith;
   M.append(el('p','sys',k[0]==='s'?'샘플 빛이에요. 실제 사람이 아니라 자동으로 짧게 답해요.':isFriend(k)?'친구와의 1:1 대화예요. 기록은 서버에 저장돼요.':'두 빛이 이어졌어요. 기록은 서버에 저장돼요.'));
-  (S.dms[k]||[]).forEach(m=>{M.append(el('div','b '+(m.me?'me':'them'),m.text));});M.scrollTop=M.scrollHeight;}
+  let prev=null;(S.dms[k]||[]).forEach(m=>{const b=el('div','b '+(m.me?'me':'them'),m.text);
+    if(m.me){M.append(b);prev='me';return;}const first=prev!=='them';prev='them';M.append(themRow(k,first?nickOf(k):null,b,first));});M.scrollTop=M.scrollHeight;}
+function themRow(k,name,bubble,showAv,nameColor){const row=el('div','mrow2');const p=findO(k)||S.P[k]||{g:'f'};
+  const av=showAv?avatarEl(k,p.g,34,false):el('span');if(!showAv)av.style.cssText='width:34px;flex:none';
+  const col=el('div');col.style.cssText='display:flex;flex-direction:column;gap:4px;min-width:0;max-width:calc(100% - 44px)';
+  if(name){const n=el('span','who2',name);if(nameColor)n.style.color=nameColor;col.append(n);}bubble.style.maxWidth='100%';col.append(bubble);row.append(av,col);return row;}
 $('msgIn').oninput=()=>{$('err').style.display='none';};
 $('compose').onsubmit=async e=>{e.preventDefault();const k=S.chatWith;const t=$('msgIn').value.trim();const err=m=>{$('err').textContent=m;$('err').style.display='block';};
   if(!t)return err('한마디를 먼저 써 주세요');
@@ -581,9 +586,9 @@ const WCOL=['#C3B5FF','#F4A6C8','#8EE3C8','#9CCBFF','#C7E68A','#FFB4A0','#F6D58A
 function wColor(k){return WCOL[hash(String(k))%WCOL.length];}
 function renderGMsgs(){const G=S.groups[S.gChat];const M=$('gmsgs');M.textContent='';if(!G)return;
   G.msgs.forEach(m=>{if(m.sys){M.append(el('p','sys',m.text));return;}
-    const wt=m.to?(m.me?'귓말 → '+nickOf(m.to):nickOf(m.from)+'님의 귓말'):(m.me?'':nickOf(m.from));const wc=m.to?wColor(m.me?m.to:m.from):null;
-    if(wt){const w=el('p','who'+(m.me?' r':'')+(m.to?' w':''),wt);if(wc)w.style.color=wc;M.append(w);}
-    const bb=el('div','b '+(m.me?'me':'them')+(m.to?' w':''),m.text);if(wc){bb.style.color=wc;bb.style.borderColor=wc+'99';}M.append(bb);});M.scrollTop=M.scrollHeight;}
+    const wc=m.to?wColor(m.me?m.to:m.from):null;const bb=el('div','b '+(m.me?'me':'them')+(m.to?' w':''),m.text);if(wc){bb.style.color=wc;bb.style.borderColor=wc+'99';}
+    if(m.me){if(m.to){const w=el('p','who r w','귓말 → '+nickOf(m.to));w.style.color=wc;M.append(w);}M.append(bb);return;}
+    M.append(themRow(m.from,m.to?nickOf(m.from)+'님의 귓말':nickOf(m.from),bb,true,wc));});M.scrollTop=M.scrollHeight;}
 function plainNick(k){return (findO(k)||S.P[k]||{}).nick||'';}
 function setAt(k){S.atTo=k;$('gIn').value='@'+plainNick(k)+' ';renderAt();}
 function renderAt(){const bar=$('atBar');bar.textContent='';const G=S.groups[S.gChat];const m=$('gIn').value.match(/^@(\S*)$/);if(!G||!m){bar.style.display='none';return;}
