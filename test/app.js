@@ -78,7 +78,7 @@ auth.onAuthStateChanged(async u=>{
   S.prof={nick:cleanNick(p.nick),g:p.g==='m'?'m':'f',birth:p.birth,age:realAge(p.birth)};S.P[S.me]=S.prof;
   try{const st=(await db.ref('settings/'+S.me).get()).val()||{};S.noReq=!!st.noReq;S.sample=st.sample!==false;S.read=st.read||{};if(typeof st.region==='number')S.region=st.region;}catch(e){}
   try{const ph=(await db.ref('photos/'+S.me).get()).val();S.photo=okImg(ph)?ph:null;}catch(e){}
-  paintMe();paintReq();paintSample();
+  paintMe();paintReq();paintSample();loadSampleFriends();
   $('offTitle').textContent=label(S.prof)+'님, 불을 켜 볼까요?';
   startSubs();show('off');
 });
@@ -144,8 +144,16 @@ function isFriend(k){return k[0]==='s'?S.botFriends.has(k):S.friends.has(k);}
 function allFriends(){return [...S.friends,...S.botFriends];}
 function isOut(k){return k[0]==='s'?S.botOut.has(k):S.outReq.has(k);}
 function isNo(k){return k[0]==='s'?S.botNo.has(k):S.frNo.has(k);}
+function sfKey(){return 'linkon-sample-friends-'+S.me;}
+function saveSampleFriends(){if(!S.me)return;try{const fr=[...S.botFriends].map(k=>BOTS.find(b=>b.key===k)).filter(Boolean).map(b=>({key:b.key,g:b.g,nick:b.nick,age:b.age,lon:b.lon,lat:b.lat}));
+  const dms={};fr.forEach(b=>{if(S.dms[b.key])dms[b.key]=S.dms[b.key].slice(-100).map(m=>({me:!!m.me,text:m.text,at:m.at||0,read:!!m.read}));});
+  localStorage.setItem(sfKey(),JSON.stringify({fr,dms}));}catch(e){}}
+function loadSampleFriends(){try{const d=JSON.parse(localStorage.getItem(sfKey())||'null');if(!d||!Array.isArray(d.fr))return;
+  d.fr.forEach(x=>{if(!x||typeof x.key!=='string'||x.key[0]!=='s')return;let b=BOTS.find(y=>y.key===x.key);
+    if(!b){b={key:x.key,sample:true,g:x.g==='m'?'m':'f',nick:cleanNick(x.nick)||'샘플',age:typeof x.age==='number'?x.age:null,lon:+x.lon,lat:+x.lat,warm:true,noReq:false,picksMe:false};BOTS.push(b);}
+    S.botFriends.add(b.key);if(d.dms&&Array.isArray(d.dms[b.key]))S.dms[b.key]=d.dms[b.key].filter(m=>m&&typeof m.text==='string').map(m=>({me:!!m.me,text:m.text.slice(0,500),at:m.at||0,read:!!m.read}));});}catch(e){}}
 function botFriendReq(k){const b=BOTS.find(x=>x.key===k);S.botOut.add(k);toast('친구를 신청했어요. 상대가 수락하면 친구가 돼요');
-  setTimeout(()=>{if(!S.botOut.has(k))return;S.botOut.delete(k);if(b&&b.warm){S.botFriends.add(k);notifyAct(k,label(b)+'님이 친구 신청을 수락했어요 (샘플)','대화',()=>openChat(k));}else{S.botNo.add(k);notifyAct(k,(b?label(b):'샘플 빛')+'님이 친구 신청을 거절했어요 (샘플)','확인',()=>{});}onPeopleChanged();},1800+Math.random()*2500);}
+  setTimeout(()=>{if(!S.botOut.has(k))return;S.botOut.delete(k);if(b&&b.warm){S.botFriends.add(k);saveSampleFriends();notifyAct(k,label(b)+'님이 친구 신청을 수락했어요 (샘플)','대화',()=>openChat(k));}else{S.botNo.add(k);notifyAct(k,(b?label(b):'샘플 빛')+'님이 친구 신청을 거절했어요 (샘플)','확인',()=>{});}onPeopleChanged();},1800+Math.random()*2500);}
 function isAdmirer(k){return !S.noReq&&likesMe(k)&&!picked(k);}
 function online(k){return !!S.L[k]||(S.sample&&k[0]==='s'&&BOTS.some(b=>b.key===k));}
 
@@ -171,7 +179,7 @@ function inKr(x,y){let c=false;for(let i=0,j=POLY.length-1;i<POLY.length;j=i++){
 let botSeq=0;
 function makeBot(){let lon=126.98,lat=37.57;for(let k=0;k<60;k++){let x,y;if(Math.random()<0.18){x=126+Math.random()*3.5;y=33.1+Math.random()*5.5;}else{let r=Math.random()*WT,c=CITIES[0];for(const ci of CITIES){r-=ci[3];if(r<=0){c=ci;break;}}const sd=0.04+Math.random()*0.12;x=c[1]+gs()*sd;y=c[2]+gs()*sd*0.8;}if(inKr(x,y)){lon=x;lat=y;break;}}
   const a=Math.random();const age=a<0.35?19+Math.floor(Math.random()*11):a<0.7?30+Math.floor(Math.random()*10):a<0.9?40+Math.floor(Math.random()*10):50+Math.floor(Math.random()*20);
-  return {key:'s'+(++botSeq),sample:true,g:Math.random()<0.5?'f':'m',nick:(NA[Math.floor(Math.random()*NA.length)]+NB[Math.floor(Math.random()*NB.length)]).slice(0,10),age,lon:+lon.toFixed(3),lat:+lat.toFixed(3),warm:Math.random()<0.6,noReq:Math.random()<0.12,picksMe:false};}
+  return {key:'s'+(++botSeq).toString(36)+Math.random().toString(36).slice(2,7),sample:true,g:Math.random()<0.5?'f':'m',nick:(NA[Math.floor(Math.random()*NA.length)]+NB[Math.floor(Math.random()*NB.length)]).slice(0,10),age,lon:+lon.toFixed(3),lat:+lat.toFixed(3),warm:Math.random()<0.6,noReq:Math.random()<0.12,picksMe:false};}
 const BOTS=[];for(let i=0;i<220;i++)BOTS.push(makeBot());S.botPicks=new Set();
 setInterval(()=>{if(!S.sample)return;for(let n=0;n<2;n++){const i=Math.floor(Math.random()*BOTS.length);const b=BOTS[i];if(!S.botPicks.has(b.key)&&!b.picksMe&&!S.botFriends.has(b.key)&&!S.botOut.has(b.key))BOTS.splice(i,1);}while(BOTS.length<220)BOTS.push(makeBot());},2500);
 setInterval(()=>{if(!S.sample||!S.lit||S.noReq)return;if(Math.random()<0.5){const c=BOTS.filter(b=>!S.botPicks.has(b.key)&&!b.picksMe);if(c.length){c[Math.floor(Math.random()*c.length)].picksMe=true;onPeopleChanged();}}},14000);
@@ -293,7 +301,7 @@ function syncDmSubs(){const want=new Set();S.friends.forEach(k=>want.add(k));Obj
     ref.on('child_added',fn,()=>{});S.dmSubs[k]=()=>ref.off('child_added',fn);});
   Object.keys(S.dmSubs).forEach(k=>{if(!want.has(k)){S.dmSubs[k]();delete S.dmSubs[k];}});}
 function refreshOpenLists(){clearTimeout(refreshOpenLists._t);refreshOpenLists._t=setTimeout(()=>{if($('chats').classList.contains('on'))renderList();if($('friends').classList.contains('on')&&!S.armed)renderFriends();},150);}
-function markRead(k){if(k[0]==='s'){(S.dms[k]||[]).forEach(m=>m.read=true);return;}const t=lastAt(k);if(t&&(S.read[k]||0)<t){S.read[k]=t;saveSetting('read/'+k,t);}}
+function markRead(k){if(k[0]==='s'){(S.dms[k]||[]).forEach(m=>m.read=true);if(isFriend(k))saveSampleFriends();return;}const t=lastAt(k);if(t&&(S.read[k]||0)<t){S.read[k]=t;saveSetting('read/'+k,t);}}
 async function openChat(k){if(!(isFriend(k)||isLinked(k))){toast('대화방이 닫혔어요');return;}S.chatWith=k;S.dms[k]=S.dms[k]||[];
   $('err').style.display='none';$('big').classList.remove('on');updChatHead();renderMsgs();show('chat');markRead(k);loadPhoto(k);}
 function loadPhoto(k){$('chAv').style.display='none';$('chDot').style.display='';if(k[0]==='s')return;
@@ -317,7 +325,7 @@ function renderMsgs(){const M=$('msgs');M.textContent='';const k=S.chatWith;
 $('msgIn').oninput=()=>{$('err').style.display='none';};
 $('compose').onsubmit=async e=>{e.preventDefault();const k=S.chatWith;const t=$('msgIn').value.trim();const err=m=>{$('err').textContent=m;$('err').style.display='block';};
   if(!t)return err('한마디를 먼저 써 주세요');
-  if(k[0]==='s'){S.dms[k].push({me:true,text:t,at:Date.now(),read:true});$('msgIn').value='';renderMsgs();setTimeout(()=>{if(!S.dms[k])return;S.dms[k].push({me:false,text:REPLIES[Math.floor(Math.random()*REPLIES.length)],at:Date.now()});if(S.chatWith===k&&$('chat').classList.contains('on')){renderMsgs();markRead(k);}},1200+Math.random()*1800);return;}
+  if(k[0]==='s'){S.dms[k].push({me:true,text:t,at:Date.now(),read:true});saveSampleFriends();$('msgIn').value='';renderMsgs();setTimeout(()=>{if(!S.dms[k])return;S.dms[k].push({me:false,text:REPLIES[Math.floor(Math.random()*REPLIES.length)],at:Date.now()});saveSampleFriends();if(S.chatWith===k&&$('chat').classList.contains('on')){renderMsgs();markRead(k);}},1200+Math.random()*1800);return;}
   if(!isFriend(k)&&!isLinked(k))return err('빛이 끊어져서 지금은 보낼 수 없어요');
   try{await db.ref('dm/'+chatId(S.me,k)).push({from:S.me,text:t.slice(0,500),at:TS});$('msgIn').value='';}catch(x){err('보내지 못했어요. 다시 시도해 주세요');}};
 $('chBack').onclick=()=>{S.chatWith=null;if(S.chatFrom==='friends'){renderFriends();show('friends');}else{renderList();show('chats');}};
@@ -351,7 +359,7 @@ $('toFriends').onclick=showFriends;$('fBack').onclick=()=>show('room');
 async function acceptFriend(k){const u={};u['friends/'+S.me+'/'+k]=true;u['friends/'+k+'/'+S.me]=true;u['freq/'+S.me+'/'+k]=null;try{await db.ref().update(u);toast(nickOf(k)+'님과 친구가 됐어요');}catch(e){toast('수락하지 못했어요. 다시 시도해 주세요');}}
 async function declineFriend(k){const u={};u['freq/'+S.me+'/'+k]=null;u['frno/'+k+'/'+S.me]=true;try{await db.ref().update(u);}catch(e){}}
 async function cancelReq(k){if(k[0]==='s'){S.botOut.delete(k);onPeopleChanged();return;}const u={};u['freq/'+k+'/'+S.me]=null;u['settings/'+S.me+'/myreq/'+k]=null;try{await db.ref().update(u);}catch(e){}}
-async function removeFriend(k){if(k[0]==='s'){S.botFriends.delete(k);toast(nickOf(k)+'님과 친구를 끊었어요');onPeopleChanged();return;}const u={};u['friends/'+S.me+'/'+k]=null;u['friends/'+k+'/'+S.me]=null;try{await db.ref().update(u);toast(nickOf(k)+'님과 친구를 끊었어요');}catch(e){toast('삭제하지 못했어요');}}
+async function removeFriend(k){if(k[0]==='s'){S.botFriends.delete(k);delete S.dms[k];saveSampleFriends();toast(nickOf(k)+'님과 친구를 끊었어요');onPeopleChanged();return;}const u={};u['friends/'+S.me+'/'+k]=null;u['friends/'+k+'/'+S.me]=null;try{await db.ref().update(u);toast(nickOf(k)+'님과 친구를 끊었어요');}catch(e){toast('삭제하지 못했어요');}}
 function personRow(k,sub){const o=findO(k);const p=o||S.P[k]||{g:'f'};const row=el('div','item');row.style.cursor='default';const av=el('span','av');const d=el('span');d.style.cssText=dotStyle(COL[p.g],16,!o);av.append(d,el('span','st '+(o?'on':'off')));
   const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;flex:1;min-width:0';w.append(el('span','t',nickOf(k)),el('span',o?'on-dot':'off-dot',sub(o)));row.append(av,w);return {row,w};}
 function renderFriends(){
