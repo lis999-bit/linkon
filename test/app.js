@@ -337,7 +337,7 @@ function refreshOpenLists(){clearTimeout(refreshOpenLists._t);refreshOpenLists._
 function markRead(k){if(k[0]==='s'){(S.dms[k]||[]).forEach(m=>m.read=true);if(isFriend(k))saveSampleFriends();return;}const t=lastAt(k);if(t&&(S.read[k]||0)<t){S.read[k]=t;saveSetting('read/'+k,t);}}
 async function openChat(k){if(!(isFriend(k)||isLinked(k))){toast('대화방이 닫혔어요');return;}S.chatWith=k;S.dms[k]=S.dms[k]||[];
   $('err').style.display='none';$('big').classList.remove('on');updChatHead();renderMsgs();show('chat');markRead(k);loadPhoto(k);}
-function loadPhoto(k){$('chAv').style.display='none';$('chDot').style.display='';if(k[0]==='s')return;
+function loadPhoto(k){$('chAv').style.display='none';$('chDot').style.display='';if(k[0]==='s'){const v=botPhoto(k);if(v){S.photos[k]=v;const o=findO(k)||{g:'f'};$('chAv').style.backgroundImage='url('+v+')';$('chAv').style.borderColor=COL[o.g];$('chAv').style.display='';$('chDot').style.display='none';}return;}
   db.ref('photos/'+k).get().then(s=>{const v=s.val();if(okImg(v)&&S.chatWith===k){S.photos[k]=v;const o=findO(k)||S.P[k]||{g:'f'};$('chAv').style.backgroundImage='url('+v+')';$('chAv').style.borderColor=COL[o.g];$('chAv').style.display='';$('chDot').style.display='none';}}).catch(()=>{});}
 $('chAv').onclick=()=>{const v=S.photos[S.chatWith];if(!v)return;$('bigImg').src=v;$('big').classList.add('on');};$('big').onclick=()=>$('big').classList.remove('on');
 function updChatHead(){const k=S.chatWith;if(!k)return;const o=findO(k);const p=o||S.P[k]||{g:'f',nick:'빛'};
@@ -375,7 +375,20 @@ function setTab(t){S.ctab=t;[['tAll','all'],['tGroup','group'],['tOne','one']].f
 $('tAll').onclick=()=>setTab('all');$('tGroup').onclick=()=>setTab('group');$('tOne').onclick=()=>setTab('one');
 function secHead(id,text,n){const h=$(id);h.textContent=text;if(n){h.append(el('span','n',n+'개'));}}
 S.phCache={};
-function getPhoto(k){if(k===S.me)return S.photo||null;if(k[0]==='s'||k in S.phCache)return S.phCache[k]||null;S.phCache[k]=null;db.ref('photos/'+k).get().then(sn=>{const v=sn.val();if(okImg(v)){S.phCache[k]=v;S.photos[k]=v;refreshOpenLists();}}).catch(()=>{delete S.phCache[k];});return null;}
+/* 샘플 빛 프로필 사진: 키로 정해지는 그림 (풍경·하늘 그림, 사람 얼굴 아님) */
+const botPhotos={};
+function botPhoto(k){if(k in botPhotos)return botPhotos[k];const h=hash(k);if(h%10>=7){botPhotos[k]=null;return null;}
+  let seed=h;const rnd=()=>{seed=(Math.imul(seed^seed>>>15,2246822507)+0x6D2B79F5)>>>0;return seed/4294967296;};
+  const c=document.createElement('canvas');c.width=c.height=120;const x=c.getContext('2d');const th=h%6;
+  const pal=[[['#2b1055','#d53369','#f6a35c'],'sun'],[['#0f2027','#2c5364','#7fd8c8'],'sea'],[['#0b0f2a','#1c2a6b','#3a4a9b'],'moon'],[['#ff9a8b','#ff6a88','#ffd3a5'],'sun'],[['#134e5e','#3f8f6a','#a8e063'],'hill'],[['#1e130c','#9a8478','#f3d7b5'],'hill']][th];
+  const g=x.createLinearGradient(0,0,0,120);g.addColorStop(0,pal[0][0]);g.addColorStop(.6,pal[0][1]);g.addColorStop(1,pal[0][2]);x.fillStyle=g;x.fillRect(0,0,120,120);
+  const kind=pal[1];
+  if(kind==='moon'){for(let i=0;i<30;i++){x.fillStyle='rgba(255,255,255,'+(0.3+rnd()*0.6)+')';x.fillRect(rnd()*120,rnd()*80,1.5,1.5);}x.fillStyle='#f4f1de';x.beginPath();x.arc(40+rnd()*40,38,16,0,7);x.fill();x.fillStyle=pal[0][1];x.beginPath();x.arc(48+rnd()*30,32,14,0,7);x.fill();}
+  else{x.fillStyle=kind==='sun'?'rgba(255,240,200,.95)':'rgba(255,250,230,.85)';x.beginPath();x.arc(30+rnd()*60,40+rnd()*20,12+rnd()*10,0,7);x.fill();}
+  if(kind==='sea'){for(let r=0;r<4;r++){x.strokeStyle='rgba(255,255,255,'+(0.25+r*0.1)+')';x.lineWidth=2;x.beginPath();for(let i=0;i<=120;i+=6){x.lineTo(i,78+r*10+Math.sin(i/9+r+rnd())*3);}x.stroke();}}
+  if(kind==='hill'||kind==='sun'){for(let l=0;l<2;l++){x.fillStyle=l?'rgba(0,0,0,.45)':'rgba(0,0,0,.25)';x.beginPath();x.moveTo(0,120);let y=80+l*14;for(let i=0;i<=120;i+=10){y+=(rnd()-.5)*10;x.lineTo(i,y);}x.lineTo(120,120);x.fill();}}
+  botPhotos[k]=c.toDataURL('image/jpeg',0.8);return botPhotos[k];}
+function getPhoto(k){if(k===S.me)return S.photo||null;if(k[0]==='s')return botPhoto(k);if(k[0]==='s'||k in S.phCache)return S.phCache[k]||null;S.phCache[k]=null;db.ref('photos/'+k).get().then(sn=>{const v=sn.val();if(okImg(v)){S.phCache[k]=v;S.photos[k]=v;refreshOpenLists();}}).catch(()=>{delete S.phCache[k];});return null;}
 function avatarEl(k,g,sz,dim){const ph=getPhoto(k);const e=el('span');const c=COL[g]||'#fff';
   if(ph)e.style.cssText='display:block;flex:none;width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:center/cover no-repeat url('+ph+');border:1.5px solid '+c+(dim?';opacity:.55':'');
   else e.style.cssText='display:flex;align-items:center;justify-content:center;flex:none;width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:#1A1A1F;border:1.5px solid '+c+'88'+(dim?';opacity:.55':'');
