@@ -264,6 +264,8 @@ function renderSheet(){const o=findO(S.sel);
   if(!o){$('sStatus').textContent='이 빛은 방금 꺼졌어요.';$('sToggle').style.display='none';$('sTalk').style.display=isFriend(S.sel)?'':'none';return;}
   $('sDot').style.cssText=dotStyle(COL[o.g],14);$('sTitle').textContent=label(o);$('sSub').textContent=desc(o);
   const on=picked(o.key),linked=isLinked(o.key),fr=isFriend(o.key);$('sToggle').style.display='';
+  $('sTalk').className='btn';$('sTalk').style.color='var(--ink)';
+  if(fr){$('sStatus').textContent='친구예요. 스위치를 켜지 않아도 바로 대화할 수 있어요.';$('sToggle').style.display='none';$('sTalk').style.display='';$('sTalk').textContent='1:1 대화하기';$('sTalk').className='btn solid';$('sTalk').style.color='';return;}
   if(o.noReq&&!on&&!linked&&!likesMe(o.key)){$('sStatus').textContent='이 빛은 지금 빛 요청을 받지 않아요.';$('sToggle').style.display='none';}
   else{$('sStatus').textContent=(!linked&&likesMe(o.key))?'이 빛이 당신을 골랐어요. 당신도 스위치를 켜면 바로 이어져요.':linked?'서로 골랐어요. 두 빛이 이어졌고, 대화가 열렸어요.':on?'이 빛의 스위치를 켰어요. 상대도 당신을 고르면 이어져요.':'이 빛의 스위치는 꺼져 있어요.';
     $('sToggle').textContent=on?'이 빛의 스위치 끄기':'이 빛의 스위치 켜기';$('sToggle').className=on?'btn':'btn solid';}
