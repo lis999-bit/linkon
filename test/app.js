@@ -379,7 +379,7 @@ function renderList(){setTab(S.ctab);renderGroups();
 S.ltab='all';
 function setLTab(t){S.ltab=t;[['lAll','all'],['lLinked','linked'],['lAdm','adm']].forEach(([id,v])=>{$(id).classList.toggle('on',t===v);$(id).setAttribute('aria-pressed',t===v);});$('secLinked').style.display=(t==='all'||t==='linked')?'flex':'none';$('secAdm').style.display=(t==='all'||t==='adm')?'flex':'none';}
 $('lAll').onclick=()=>setLTab('all');$('lLinked').onclick=()=>setLTab('linked');$('lAdm').onclick=()=>setLTab('adm');
-function renderLights(){setLTab(S.ltab);const L=$('linkedList');L.textContent='';const ls=others().filter(o=>isLinked(o.key));secHead('linkedHead','이어진 빛',ls.length);$('noLinked').style.display=ls.length?'none':'block';
+function renderLights(){setLTab(S.ltab);const L=$('linkedList');L.textContent='';const ls=others().filter(o=>isLinked(o.key));
   ls.forEach(o=>{const b=el('button','item');b.type='button';const d=el('span');d.style.cssText=dotStyle(COL[o.g],14);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1';const t=el('span','t',label(o));if(isFriend(o.key))t.append(el('span','tag fr','친구'));w.append(t,el('span','s',desc(o)));b.append(d,w);
     const n=unreadOf(o.key);if(n)b.append(el('span','badge',String(n)));b.onclick=()=>{S.chatFrom='lights';openChat(o.key);};L.append(b);});
   renderAdm();}
