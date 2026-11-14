@@ -375,12 +375,12 @@ function renderLights(){setLTab(S.ltab);const L=$('linkedList');L.textContent=''
   renderAdm();}
 function showLights(){S.sel=null;$('sheet').classList.remove('on');$('meSheet').classList.remove('on');renderLights();show('lightsScr');}
 $('toLights').onclick=showLights;$('lBack').onclick=()=>show('room');
-function renderMyPicks(){const M=$('myPickList');M.textContent='';const ps=others().filter(o=>picked(o.key)&&!isLinked(o.key));$('myPickHead').textContent='내가 선택한 빛'+(ps.length?' '+ps.length+'개':'');$('noMyPick').style.display=ps.length?'none':'block';
+function renderMyPicks(){const M=$('myPickList');M.textContent='';const ps=others().filter(o=>picked(o.key)&&!isLinked(o.key));
   ps.forEach(o=>{const row=el('div','item');const d=el('span');d.style.cssText=dotStyle(COL[o.g],14);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1';const left=pickLeft(o.key);w.append(el('span','t',label(o)),el('span','s',desc(o)+(left!=null?' · '+Math.max(1,Math.ceil(left/60000))+'분 남음':'')));
     row.classList.add('swipe');row.style.cursor='pointer';row.append(d,w);attachSwipe(row,()=>{cancelPick(o.key);},()=>focusLight(o.key));M.append(row);});}
 function cancelPick(k){if(k[0]==='s'){S.botPicks.delete(k);S.botPickAt.delete(k);onPeopleChanged();}else{const u={};u['mypicks/'+S.me+'/'+k]=null;u['likes/'+k+'/'+S.me]=null;db.ref().update(u).catch(()=>{});}toast(nickOf(k)+'님에게 켠 스위치를 껐어요');}
-function renderAdm(){renderMyPicks();const A=$('adm');A.textContent='';const adms=others().filter(o=>isAdmirer(o.key));$('admHead').textContent='나를 선택한 빛'+(adms.length?' '+adms.length+'개':'');$('noAdm').style.display=adms.length?'none':'block';
-  adms.forEach(o=>{const b=el('button','item swipe');b.type='button';const d=el('span');d.style.cssText=dotStyle(COL[o.g],14);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px';w.append(el('span','t',label(o)),el('span','s',desc(o)+' · 나를 골랐어요'));b.append(d,w);attachSwipe(b,()=>rejectAdmirer(o.key),()=>focusLight(o.key));A.append(b);});}
+function renderAdm(){renderMyPicks();const A=$('adm');A.textContent='';const adms=others().filter(o=>isAdmirer(o.key));
+  adms.forEach(o=>{const b=el('button','item swipe');b.type='button';const d=el('span');d.style.cssText=dotStyle(COL[o.g],14);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px';w.append(el('span','t',label(o)),el('span','s',desc(o)));b.append(d,w);attachSwipe(b,()=>rejectAdmirer(o.key),()=>focusLight(o.key));A.append(b);});}
 function rejectAdmirer(k){if(k[0]==='s'){const b=BOTS.find(x=>x.key===k);if(b)b.picksMe=false;}else db.ref('likes/'+S.me+'/'+k).remove().catch(()=>{});toast(nickOf(k)+'님의 빛을 거절했어요');}
 function attachSwipe(e,onSwipe,onTap){let sx=0,sy=0,dx=0,on=false,moved=false,id=null;
   e.addEventListener('pointerdown',ev=>{sx=ev.clientX;sy=ev.clientY;dx=0;on=true;moved=false;id=ev.pointerId;});
