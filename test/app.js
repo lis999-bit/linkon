@@ -245,7 +245,8 @@ function frame(now){requestAnimationFrame(frame);if(!$('room').classList.contain
   ctx.fillStyle='#fff';ctx.font='12px "Noto Sans KR",sans-serif';ctx.fillText(label(S.prof),mx+myR+8,my+4);
   $('zFit').style.visibility=Z.s>1.01?'visible':'hidden';
   if(!frame._t||now-frame._t>500){frame._t=now;
-    $('count').textContent=(os.length+1).toLocaleString('ko-KR')+'개';$('empty').style.display=os.length?'none':'block';
+    $('count').textContent=(os.length+1).toLocaleString('ko-KR')+'개';
+    {const R=$('ratio');if(S.view==='mine'){R.style.display='none';}else{let f=0,m=0;os.forEach(o=>{o.g==='m'?m++:f++;});S.prof.g==='m'?m++:f++;R.style.display='flex';R.innerHTML='';const mk=(c,l,n)=>{const sp=el('span');sp.style.cssText='display:inline-flex;align-items:center;gap:5px';const d=el('span');d.style.cssText='width:8px;height:8px;border-radius:50%;background:'+c+';box-shadow:0 0 6px '+c;sp.append(d,document.createTextNode(l+' '+n.toLocaleString('ko-KR')));return sp;};R.append(mk(COL.f,'여',f),mk(COL.m,'남',m));R.setAttribute('aria-label','여성 '+f+'명, 남성 '+m+'명');}}$('empty').style.display=os.length?'none':'block';
     const rooms=oneRooms().length+Object.keys(S.groups).length;const adms=os.filter(o=>isAdmirer(o.key)).length;
     $('toChats').textContent='대화방 '+rooms+(totalUnread()?' · 새 메시지':'');$('toLights').textContent='빛 '+links.length+(adms?' · +'+adms:'');
     const afs=allFriends();const onF=afs.filter(k=>online(k)).length;$('toFriends').textContent=(afs.length?'친구 '+onF+'/'+afs.length:'친구')+(S.inReq.size?' · 신청 '+S.inReq.size:'');}
