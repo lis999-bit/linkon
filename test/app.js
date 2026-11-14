@@ -52,20 +52,20 @@ let offDisc=null,watchId=null;
 const bSel=$('aBirth');for(let y=MAX_BIRTH;y>=THIS_YEAR-90;y--){const o=el('option',null,y+'년');o.value=y;bSel.appendChild(o);}
 
 let mode='new',gPick=null;
-function setMode(m){mode=m;$('tabNew').classList.toggle('on',m==='new');$('tabLogin').classList.toggle('on',m==='login');$('tabNew').setAttribute('aria-pressed',m==='new');$('tabLogin').setAttribute('aria-pressed',m==='login');$('newOnly').style.display=m==='new'?'flex':'none';$('aGo').textContent=m==='new'?'아이디 만들고 들어가기':'로그인';$('aPw').autocomplete=m==='new'?'new-password':'current-password';$('aErr').style.display='none';}
+function setMode(m){mode=m;$('aId').maxLength=m==='new'?10:80;$('aIdHint').style.display=m==='login'?'block':'none';$('forgotBtn').style.display=m==='login'?'':'none';if(m!=='login')$('forgotBox').style.display='none';$('tabNew').classList.toggle('on',m==='new');$('tabLogin').classList.toggle('on',m==='login');$('tabNew').setAttribute('aria-pressed',m==='new');$('tabLogin').setAttribute('aria-pressed',m==='login');$('newOnly').style.display=m==='new'?'flex':'none';$('aGo').textContent=m==='new'?'아이디 만들고 들어가기':'로그인';$('aPw').autocomplete=m==='new'?'new-password':'current-password';$('aErr').style.display='none';}
 $('tabNew').onclick=()=>setMode('new');$('tabLogin').onclick=()=>setMode('login');
 document.querySelectorAll('#gRow .btn').forEach(b=>b.onclick=()=>{gPick=b.dataset.g;document.querySelectorAll('#gRow .btn').forEach(x=>{const on=x===b;x.classList.toggle('sel',on);x.style.background=on?COL[x.dataset.g]:'';x.setAttribute('aria-pressed',on);});$('aErr').style.display='none';});
 ['aId','aPw','aPw2','aBirth'].forEach(id=>$(id).addEventListener('input',()=>{$('aErr').style.display='none';}));
 function aErr(t){$('aErr').textContent=t;$('aErr').style.display='block';}
 $('authForm').onsubmit=async e=>{e.preventDefault();const nick=cleanNick($('aId').value),pw=$('aPw').value;
-  if(!nick)return aErr('아이디를 써 주세요');if(pw.length<6)return aErr('비밀번호는 6자 이상이어야 해요');
+  if(!nick&&!(mode==='login'&&$('aId').value.includes('@')))return aErr('아이디를 써 주세요');if(pw.length<6)return aErr('비밀번호는 6자 이상이어야 해요');
   $('aGo').disabled=true;
   try{
     if(mode==='new'){
       if(pw!==$('aPw2').value)throw {code:'x/pw2'};if(!gPick)throw {code:'x/g'};const by=+bSel.value;if(!by)throw {code:'x/birth'};
       const cred=await auth.createUserWithEmailAndPassword(idEmail(nick),pw);
       await db.ref('profiles/'+cred.user.uid).set({nick,g:gPick,birth:by,created:TS});
-    }else{await auth.signInWithEmailAndPassword(idEmail(nick),pw);}
+    }else{const raw=$('aId').value.trim();if(raw.includes('@')){await auth.signInWithEmailAndPassword(raw,pw);S.loginPw=pw;}else{S.loginPw=pw;try{await auth.signInWithEmailAndPassword(idEmail(nick),pw);}catch(x1){const em=await blobEmail(nick,pw);if(!em)throw x1;await auth.signInWithEmailAndPassword(em,pw);}}}
   }catch(x){const c=x&&x.code||'';
     aErr(c==='x/pw2'?'비밀번호 확인이 달라요':c==='x/g'?'빛의 색을 골라 주세요':c==='x/birth'?'태어난 해를 골라 주세요':
       c==='auth/email-already-in-use'?'「'+nick+'」은(는) 이미 다른 사람이 쓰고 있어요. 다른 아이디를 써 주세요':
@@ -139,10 +139,14 @@ function startSubs(){const me=S.me;
   sub(db.ref('settings/'+me+'/read'),'value',s=>{S.read=s.val()||{};});
   sub(db.ref('settings/'+me+'/fcats'),'value',s=>{S.fcats=s.val()||{};refreshOpen();});
   sub(db.ref('settings/'+me+'/fmap'),'value',s=>{S.fmap=s.val()||{};refreshOpen();});
+  sub(db.ref('blocks/'+me),'value',s=>{S.blocks=new Set(Object.keys(s.val()||{}));onPeopleChanged();});
+  sub(db.ref('blockedBy/'+me),'value',s=>{S.blockedBy=new Set(Object.keys(s.val()||{}));onPeopleChanged();});
+  afterLogin();
   setTimeout(()=>{S.ready=true;},2500);
 }
 function nickOf(k){if(k===S.me)return label(S.prof);const b=k[0]==='s'?BOTS.find(x=>x.key===k):null;if(b)return label(b);const o=S.L[k];if(o)return label(o);const p=S.P[k];if(p)return label(p);loadProfile(k);return '빛';}
-function others(){const a=Object.values(S.L);return S.sample?a.concat(BOTS):a;}
+function blockedK(k){return (S.blocks&&S.blocks.has(k))||(S.blockedBy&&S.blockedBy.has(k));}
+function others(){const a=Object.values(S.L).filter(o=>!blockedK(o.key));return S.sample?a.concat(BOTS.filter(b=>!blockedK(b.key))):a;}
 function findO(k){return S.L[k]||(k[0]==='s'?BOTS.find(b=>b.key===k):null)||null;}
 const PICK_TTL=10*60*1000;
 function nowS(){return Date.now()+(S.tOff||0);}
@@ -154,7 +158,7 @@ function likesMe(k){if(k[0]==='s'){const b=BOTS.find(x=>x.key===k);return !!(b&&
 function isLinked(k){return picked(k)&&likesMe(k);}
 S.botFriends=new Set();S.botOut=new Set();S.botNo=new Set();
 function isFriend(k){return k[0]==='s'?S.botFriends.has(k):S.friends.has(k);}
-function allFriends(){return [...S.friends,...S.botFriends];}
+function allFriends(){return [...S.friends,...S.botFriends].filter(k=>!blockedK(k));}
 function isOut(k){return k[0]==='s'?S.botOut.has(k):S.outReq.has(k);}
 function isNo(k){return k[0]==='s'?S.botNo.has(k):S.frNo.has(k);}
 function sfKey(){return 'linkon-sample-friends-'+S.me;}
@@ -354,7 +358,7 @@ $('photoIn').onchange=()=>{const f=$('photoIn').files&&$('photoIn').files[0];if(
 $('photoDel').onclick=()=>{db.ref('photos/'+S.me).remove().then(()=>{S.photo=null;paintMe();}).catch(()=>{});};
 
 /* ---------- 1:1 대화 ---------- */
-function oneRooms(){const ks=new Set();Object.keys(S.dms).forEach(k=>{if((isFriend(k)||isLinked(k))&&(S.dms[k]||[]).length)ks.add(k);});
+function oneRooms(){const ks=new Set();Object.keys(S.dms).forEach(k=>{if(!blockedK(k)&&(isFriend(k)||isLinked(k))&&(S.dms[k]||[]).length)ks.add(k);});
   return [...ks].sort((a,b)=>(unreadOf(b)-unreadOf(a))||((lastAt(b))-(lastAt(a))));}
 function lastAt(k){const m=S.dms[k];return m&&m.length?m[m.length-1].at||0:0;}
 function unreadOf(k){if(k[0]==='s'){return (S.dms[k]||[]).filter(m=>!m.me&&!m.read).length;}const r=S.read[k]||0;return (S.dms[k]||[]).filter(m=>m.from!==S.me&&(m.at||0)>r).length;}
@@ -662,5 +666,80 @@ $('gcompose').onsubmit=async e=>{e.preventDefault();const G=S.groups[S.gChat];if
   try{if(to){const d={from:S.me,to,text:text.slice(0,500),at:TS};const u={};const id=db.ref().push().key;u['gw/'+G.id+'/'+to+'/'+id]=d;u['gw/'+G.id+'/'+S.me+'/'+id]=d;await db.ref().update(u);}
     else await db.ref('gmsgs/'+G.id).push({from:S.me,text:text.slice(0,500),at:TS});
     $('gIn').value='';S.atTo=null;renderAt();}catch(x){err('보내지 못했어요. 다시 시도해 주세요');}};
+
+
+/* ===================== 안전·계정 ===================== */
+S.blocks=new Set();S.blockedBy=new Set();
+function openAct(build){const sh=$('actSheet');sh.textContent='';build(sh);$('act').classList.add('on');}
+function closeAct(){$('act').classList.remove('on');}
+$('actBg').onclick=closeAct;
+function h3(t){return el('h3',null,t);}
+function aBtn(t,fn,danger){const b=el('button','actbtn'+(danger?' danger':''),t);b.type='button';b.onclick=fn;return b;}
+function field(type,ph,ml){const i=el('input','field');i.type=type;if(ph)i.placeholder=ph;if(ml)i.maxLength=ml;return i;}
+function errP(){const p=el('p','err');return p;}
+function showErr(p,t){p.textContent=t;p.style.display=t?'block':'none';}
+
+/* ----- 차단 ----- */
+async function blockUser(k){if(k[0]==='s'){S.blocks.add(k);S.botPicks.delete(k);S.botFriends.delete(k);saveSampleFriends();onPeopleChanged();}
+  else{const me=S.me,u={};u['blocks/'+me+'/'+k]=TS;u['blockedBy/'+k+'/'+me]=TS;u['mypicks/'+me+'/'+k]=null;u['likes/'+k+'/'+me]=null;u['likes/'+me+'/'+k]=null;u['friends/'+me+'/'+k]=null;u['friends/'+k+'/'+me]=null;u['freq/'+me+'/'+k]=null;u['freq/'+k+'/'+me]=null;u['settings/'+me+'/myreq/'+k]=null;
+    try{await db.ref().update(u);}catch(e){toast('차단하지 못했어요. 다시 시도해 주세요');return false;}}
+  if(S.sel===k){S.sel=null;$('sheet').classList.remove('on');}if(S.chatWith===k){S.chatWith=null;renderList();show('chats');}
+  toast(nickOf(k)+'님을 차단했어요. 이제 서로 보이지 않아요');return true;}
+async function unblockUser(k){if(k[0]==='s'){S.blocks.delete(k);onPeopleChanged();return;}const u={};u['blocks/'+S.me+'/'+k]=null;u['blockedBy/'+k+'/'+S.me]=null;try{await db.ref().update(u);toast('차단을 풀었어요');}catch(e){toast('풀지 못했어요');}}
+/* ----- 신고 ----- */
+const REASONS=['욕설·비방','성적인 내용','스팸·광고','사칭·거짓 정보','위협·스토킹','기타'];
+function openReport(k){const nm=nickOf(k);openAct(sh=>{sh.append(h3(nm+'님 신고하기'),el('p','hint','어떤 문제가 있었나요? 신고 내용은 운영자만 볼 수 있어요.'));let pick=null;const row=el('div','row');
+  REASONS.forEach(r=>{const c=el('button','chip',r);c.type='button';c.onclick=()=>{pick=r;row.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));showErr(er,'');};row.append(c);});
+  const ta=document.createElement('textarea');ta.className='field';ta.maxLength=300;ta.placeholder='자세한 내용 (선택)';ta.style.cssText='min-height:80px;border-radius:14px;padding:10px 14px;resize:vertical';ta.setAttribute('aria-label','자세한 내용');
+  const ck=el('label','row');ck.style.cssText='align-items:center;gap:8px;font-size:14px;color:var(--ink)';const cb=el('input');cb.type='checkbox';cb.checked=true;cb.style.cssText='width:20px;height:20px;accent-color:#FFB86B';ck.append(cb,document.createTextNode('신고하면서 차단하기'));
+  const er=errP();
+  sh.append(row,ta,ck,er,aBtn('신고 보내기',async()=>{if(!pick)return showErr(er,'신고 이유를 골라 주세요');
+    if(k[0]!=='s'){try{await db.ref('reports').push({by:S.me,target:k,nick:plainNick(k),reason:pick,text:String(ta.value||'').slice(0,300),at:TS});}catch(e){return showErr(er,'신고를 보내지 못했어요. 다시 시도해 주세요');}}
+    closeAct();toast('신고를 접수했어요');if(cb.checked)blockUser(k);}),aBtn('취소',closeAct));});}
+function openPersonMenu(k){const nm=nickOf(k);openAct(sh=>{sh.append(h3(nm));
+  sh.append(aBtn('신고하기',()=>openReport(k)),aBtn('차단하기',()=>openAct(s2=>{s2.append(h3(nm+'님을 차단할까요?'),el('p','hint','서로의 빛과 대화방이 보이지 않게 되고, 이어진 빛·친구·신청도 모두 끊어져요. 상대에게 차단 사실을 알리지 않아요. 내 설정 → 차단한 빛에서 풀 수 있어요.'),aBtn('차단하기',async()=>{closeAct();await blockUser(k);},true),aBtn('취소',closeAct));}),true),aBtn('닫기',closeAct));});}
+$('sMore').onclick=()=>{if(S.sel)openPersonMenu(S.sel);};
+$('chMore').onclick=()=>{if(S.chatWith)openPersonMenu(S.chatWith);};
+$('mBlocks').onclick=()=>{openAct(sh=>{sh.append(h3('차단한 빛'));const ks=[...S.blocks];if(!ks.length)sh.append(el('p','hint','차단한 빛이 없어요.'));
+  ks.forEach(k=>{const r=el('div','mrow');const p=S.P[k]||findO(k)||{};r.append(el('span','t',p.nick?label(p):'빛'),sbtn('차단 풀기',null,async()=>{await unblockUser(k);r.remove();}));sh.append(r);});sh.append(aBtn('닫기',closeAct));});};
+
+/* ----- 아이디 ↔ 복구 이메일 (비밀번호로 암호화해 저장) ----- */
+function idKey(nick){return 'u'+hexUtf8(cleanNick(nick).toLowerCase());}
+function isSynth(email){return /@linkon\.app$/.test(email||'');}
+async function deriveKey(pw,salt){const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt:new TextEncoder().encode('linkon:'+salt),iterations:120000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
+const b64=a=>btoa(String.fromCharCode(...new Uint8Array(a)));const ub64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function saveBlob(nick,email,pw){try{const k=await deriveKey(pw,idKey(nick));const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,new TextEncoder().encode(email));await db.ref('logins/'+idKey(nick)).set({uid:S.me,iv:b64(iv),ct:b64(ct)});return true;}catch(e){return false;}}
+async function blobEmail(nick,pw){try{const v=(await db.ref('logins/'+idKey(nick)).get()).val();if(!v||!v.iv||!v.ct)return null;const k=await deriveKey(pw,idKey(nick));const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(v.iv)},k,ub64(v.ct));return new TextDecoder().decode(pt);}catch(e){return null;}}
+async function afterLogin(){const u=auth.currentUser;if(!u)return;const pw=S.loginPw;S.loginPw=null;if(pw&&u.email&&!isSynth(u.email))await saveBlob(S.prof.nick,u.email,pw);}
+function curEmail(){const u=auth.currentUser;return u&&u.email&&!isSynth(u.email)?u.email:null;}
+async function reauth(pw){const u=auth.currentUser;const cred=firebase.auth.EmailAuthProvider.credential(u.email,pw);await u.reauthenticateWithCredential(cred);}
+function authMsg(x){const c=x&&x.code||'';return (c==='auth/wrong-password'||c==='auth/invalid-credential'||c==='auth/invalid-login-credentials')?'지금 비밀번호가 맞지 않아요':c==='auth/too-many-requests'?'시도가 너무 많아요. 잠시 뒤 다시 해 주세요':c==='auth/invalid-email'?'이메일 주소를 확인해 주세요':c==='auth/email-already-in-use'?'이미 다른 계정에 쓰인 이메일이에요':c==='auth/weak-password'?'비밀번호는 6자 이상이어야 해요':'처리하지 못했어요. 다시 시도해 주세요';}
+$('mPw').onclick=()=>{openAct(sh=>{const o=field('password','지금 비밀번호'),n=field('password','새 비밀번호 (6자 이상)'),n2=field('password','새 비밀번호 확인'),er=errP();[o,n,n2].forEach(i=>i.setAttribute('aria-label',i.placeholder));
+  sh.append(h3('비밀번호 변경'),o,n,n2,er,aBtn('바꾸기',async()=>{showErr(er,'');if(n.value.length<6)return showErr(er,'새 비밀번호는 6자 이상이어야 해요');if(n.value!==n2.value)return showErr(er,'새 비밀번호 확인이 달라요');
+    try{await reauth(o.value);await auth.currentUser.updatePassword(n.value);const em=curEmail();if(em)await saveBlob(S.prof.nick,em,n.value);closeAct();toast('비밀번호를 바꿨어요');}catch(x){showErr(er,authMsg(x));}}),aBtn('취소',closeAct));});};
+$('mMail').onclick=()=>{openAct(sh=>{const cur=curEmail();sh.append(h3('복구 이메일'),el('p','hint',cur?'연결된 이메일: '+cur.replace(/^(.{2}).*(@.*)$/,'$1***$2')+'\n비밀번호를 잊으면 이 이메일로 다시 정할 수 있어요. 이메일로도 로그인할 수 있어요.':'이메일을 연결해 두면 비밀번호를 잊었을 때 다시 정할 수 있어요. 이메일은 다른 사람에게 보이지 않아요.'));
+  const m=field('email','name@example.com'),o=field('password','지금 비밀번호'),er=errP();m.setAttribute('aria-label','이메일');o.setAttribute('aria-label','지금 비밀번호');
+  sh.append(m,o,er,aBtn(cur?'다른 이메일로 바꾸기':'인증 메일 보내기',async()=>{showErr(er,'');const em=m.value.trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em))return showErr(er,'이메일 주소를 확인해 주세요');
+    try{await reauth(o.value);if(!(await saveBlob(S.prof.nick,em,o.value)))return showErr(er,'저장하지 못했어요. 다시 시도해 주세요');await auth.currentUser.verifyBeforeUpdateEmail(em);closeAct();
+      openAct(s2=>{s2.append(h3('인증 메일을 보냈어요'),el('p','hint',em+' 으로 보낸 메일의 링크를 누르면 연결이 끝나요. 메일이 안 보이면 스팸함도 확인해 주세요. 연결된 뒤에는 다시 로그인해야 할 수 있어요.'),aBtn('확인',closeAct));});}catch(x){showErr(er,authMsg(x));}}),aBtn('취소',closeAct));});};
+$('forgotBtn').onclick=()=>{const b=$('forgotBox');b.style.display=b.style.display==='none'?'flex':'none';$('fErr').style.display='none';};
+$('fGo').onclick=async()=>{const em=$('fEmail').value.trim();const er=$('fErr');er.style.color='';if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){er.textContent='이메일 주소를 확인해 주세요';er.style.display='block';return;}
+  try{await auth.sendPasswordResetEmail(em);}catch(e){}er.style.color='#9FE1CB';er.textContent='연결된 이메일이 맞다면 재설정 메일이 갔어요. 메일의 링크로 새 비밀번호를 정한 뒤, 아이디 칸에 이메일을 쓰고 새 비밀번호로 로그인해 주세요.';er.style.display='block';};
+
+/* ----- 회원 탈퇴 ----- */
+$('mQuit').onclick=()=>{openAct(sh=>{const o=field('password','비밀번호'),er=errP();o.setAttribute('aria-label','비밀번호');
+  sh.append(h3('회원 탈퇴'),el('p','hint','탈퇴하면 아이디, 프로필, 사진, 친구, 설정이 모두 지워지고 되돌릴 수 없어요. 내가 보낸 대화 내용은 상대 대화방에 "알 수 없는 빛"으로 남아요. 방장인 별자리는 다음 사람에게 넘어가요.'),o,er,
+    aBtn('탈퇴하기',async()=>{showErr(er,'');try{await reauth(o.value);}catch(x){return showErr(er,authMsg(x));}showErr(er,'정리하는 중이에요…');er.style.color='var(--mute)';
+      try{await deleteMyData();await auth.currentUser.delete();closeAct();location.reload();}catch(x){er.style.color='';showErr(er,'탈퇴를 끝내지 못했어요. 다시 시도해 주세요');}},true),aBtn('취소',closeAct));});};
+async function deleteMyData(){const me=S.me;await lightOff();
+  for(const G of Object.values(S.groups)){if(G.sample)continue;try{await leaveGroup(G);}catch(e){}}
+  const g=async p=>{try{return (await db.ref(p).get()).val()||{};}catch(e){return {};}};
+  const [picks,likes,fr,inq,myreq]=await Promise.all([g('mypicks/'+me),g('likes/'+me),g('friends/'+me),g('freq/'+me),g('settings/'+me+'/myreq')]);
+  const u={};Object.keys(picks).forEach(k=>{u['likes/'+k+'/'+me]=null;});Object.keys(likes).forEach(k=>{u['likes/'+me+'/'+k]=null;});
+  Object.keys(fr).forEach(k=>{u['friends/'+k+'/'+me]=null;u['friends/'+me+'/'+k]=null;});Object.keys(inq).forEach(k=>{u['freq/'+me+'/'+k]=null;});Object.keys(myreq).forEach(k=>{u['freq/'+k+'/'+me]=null;});
+  [...S.blocks].forEach(k=>{if(k[0]!=='s'){u['blocks/'+me+'/'+k]=null;u['blockedBy/'+k+'/'+me]=null;}});
+  u['mypicks/'+me]=null;u['settings/'+me]=null;u['photos/'+me]=null;u['lights/'+me]=null;u['mygroups/'+me]=null;u['profiles/'+me]=null;u['logins/'+idKey(S.prof.nick)]=null;
+  await db.ref().update(u);
+  try{Object.keys(localStorage).filter(x=>x.includes(me)||x==='lp-photo').forEach(x=>localStorage.removeItem(x));}catch(e){}}
 
 })();
