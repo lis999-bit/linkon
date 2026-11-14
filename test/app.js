@@ -78,7 +78,7 @@ auth.onAuthStateChanged(async u=>{
   S.prof={nick:cleanNick(p.nick),g:p.g==='m'?'m':'f',birth:p.birth,age:realAge(p.birth)};S.P[S.me]=S.prof;
   try{const st=(await db.ref('settings/'+S.me).get()).val()||{};S.noReq=!!st.noReq;S.sample=st.sample!==false;S.read=st.read||{};if(typeof st.region==='number')S.region=st.region;}catch(e){}
   try{const ph=(await db.ref('photos/'+S.me).get()).val();S.photo=okImg(ph)?ph:null;}catch(e){}
-  paintMe();paintReq();paintSample();loadSampleFriends();
+  paintMe();paintReq();paintSample();loadSampleFriends();loadSampleGroups();
   $('offTitle').textContent=label(S.prof)+'님, 불을 켜 볼까요?';
   startSubs();show('off');
 });
@@ -359,7 +359,7 @@ $('toFriends').onclick=showFriends;$('fBack').onclick=()=>show('room');
 async function acceptFriend(k){const u={};u['friends/'+S.me+'/'+k]=true;u['friends/'+k+'/'+S.me]=true;u['freq/'+S.me+'/'+k]=null;try{await db.ref().update(u);toast(nickOf(k)+'님과 친구가 됐어요');}catch(e){toast('수락하지 못했어요. 다시 시도해 주세요');}}
 async function declineFriend(k){const u={};u['freq/'+S.me+'/'+k]=null;u['frno/'+k+'/'+S.me]=true;try{await db.ref().update(u);}catch(e){}}
 async function cancelReq(k){if(k[0]==='s'){S.botOut.delete(k);onPeopleChanged();return;}const u={};u['freq/'+k+'/'+S.me]=null;u['settings/'+S.me+'/myreq/'+k]=null;try{await db.ref().update(u);}catch(e){}}
-async function removeFriend(k){if(k[0]==='s'){S.botFriends.delete(k);delete S.dms[k];saveSampleFriends();toast(nickOf(k)+'님과 친구를 끊었어요');onPeopleChanged();return;}const u={};u['friends/'+S.me+'/'+k]=null;u['friends/'+k+'/'+S.me]=null;try{await db.ref().update(u);toast(nickOf(k)+'님과 친구를 끊었어요');}catch(e){toast('삭제하지 못했어요');}}
+async function removeFriend(k){if(k[0]==='s'){S.botFriends.delete(k);delete S.dms[k];saveSampleFriends();Object.values(S.groups).forEach(G=>{if(G.sample&&G.members[k]){delete G.members[k];delete G.subs[k];}});saveSampleGroups();toast(nickOf(k)+'님과 친구를 끊었어요');onPeopleChanged();return;}const u={};u['friends/'+S.me+'/'+k]=null;u['friends/'+k+'/'+S.me]=null;try{await db.ref().update(u);toast(nickOf(k)+'님과 친구를 끊었어요');}catch(e){toast('삭제하지 못했어요');}}
 function personRow(k,sub){const o=findO(k);const p=o||S.P[k]||{g:'f'};const row=el('div','item');row.style.cursor='default';const av=el('span','av');const d=el('span');d.style.cssText=dotStyle(COL[p.g],16,!o);av.append(d,el('span','st '+(o?'on':'off')));
   const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;flex:1;min-width:0';w.append(el('span','t',nickOf(k)),el('span',o?'on-dot':'off-dot',sub(o)));row.append(av,w);return {row,w};}
 function renderFriends(){
@@ -400,7 +400,15 @@ function groupGone(g,kicked){const G=S.groups[g];const name=G&&G.name;unwatchGro
 function addGMsg(g,m){const G=S.groups[g];if(!G||G.msgs.some(x=>x.id===m.id))return;m.me=m.from===S.me;loadProfile(m.from);G.msgs.push(m);G.msgs.sort((a,b)=>a.at-b.at);if(G.msgs.length>200)G.msgs.shift();
   if(S.gChat===g&&$('gchat').classList.contains('on'))renderGMsgs();else if(!m.me&&m.at>S.startAt&&!m.sys){G.unread=(G.unread||0)+1;notifyAct(m.from,(m.to?'귓말 · ':G.name+' · ')+nickOf(m.from)+': '+m.text.slice(0,30),'열기',()=>openGroup(g));refreshOpenLists();}}
 function gSys(G,text){G.msgs.push({id:'l'+Date.now()+Math.random(),sys:true,text,at:Date.now(),local:true});if(S.gChat===G.id&&$('gchat').classList.contains('on'))renderGMsgs();}
-function postSys(g,text){return db.ref('gmsgs/'+g).push({from:S.me,text,at:TS,sys:true}).catch(()=>{});}
+function sgKey(){return 'linkon-sample-groups-'+S.me;}
+function saveSampleGroups(){if(!S.me)return;try{const arr=Object.values(S.groups).filter(G=>G.sample).map(G=>({id:G.id,name:G.name,owner:G.owner,members:G.members,subs:G.subs,msgs:G.msgs.slice(-150).map(m=>({id:m.id,from:m.from,to:m.to||null,text:m.text,at:m.at,sys:!!m.sys}))}));localStorage.setItem(sgKey(),JSON.stringify(arr));}catch(e){}}
+function loadSampleGroups(){try{const arr=JSON.parse(localStorage.getItem(sgKey())||'[]');if(!Array.isArray(arr))return;arr.forEach(x=>{if(!x||typeof x.id!=='string'||!x.id.startsWith('sg'))return;const members={};Object.keys(x.members||{}).forEach(k=>{if(k===S.me||S.botFriends.has(k))members[k]=x.members[k];});if(!members[S.me])return;
+  S.groups[x.id]={id:x.id,name:cleanName(x.name)||'별자리',owner:S.me,members,subs:Object.fromEntries(Object.keys(x.subs||{}).filter(k=>members[k]).map(k=>[k,x.subs[k]])),invites:{},sug:{},no:{},unread:0,sample:true,_loaded:true,msgs:(x.msgs||[]).filter(m=>m&&typeof m.text==='string').map(m=>({id:String(m.id),from:String(m.from),to:m.to||null,text:m.text.slice(0,500),at:m.at||0,sys:!!m.sys,me:m.from===S.me}))};});}catch(e){}}
+function createSampleGroup(name,keys){const id='sg'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);const now=Date.now();const members={};members[S.me]=now;keys.forEach((k,i)=>members[k]=now+i+1);
+  const G={id,name,owner:S.me,members,subs:{},invites:{},sug:{},no:{},unread:0,sample:true,_loaded:true,msgs:[]};S.groups[id]=G;gSys(G,'샘플 별자리가 만들어졌어요. 샘플 친구들이 자동으로 짧게 답해요. @아이디 로 쓰면 그 사람에게만 귓말이 가요.');saveSampleGroups();return G;}
+function sampleGroupReply(G,msg){const bots=memberKeys(G).filter(k=>k[0]==='s');if(!bots.length)return;const who=msg.to?(bots.includes(msg.to)?msg.to:null):bots[Math.floor(Math.random()*bots.length)];if(!who)return;
+  setTimeout(()=>{if(!S.groups[G.id]||!G.members[who])return;addGMsg(G.id,{id:'b'+Date.now()+Math.random(),from:who,to:msg.to?S.me:null,text:REPLIES[Math.floor(Math.random()*REPLIES.length)],at:Date.now()});saveSampleGroups();},1200+Math.random()*2200);}
+function postSys(g,text){if(S.groups[g]&&S.groups[g].sample){gSys(S.groups[g],text);saveSampleGroups();return Promise.resolve();}return db.ref('gmsgs/'+g).push({from:S.me,text,at:TS,sys:true}).catch(()=>{});}
 function memberKeys(G){return Object.keys(G.members||{}).sort((a,b)=>(G.members[a]||0)-(G.members[b]||0));}
 function isSub(G,k){return !!(G.subs&&G.subs[k]);}
 function canKick(G,k){return k!==G.owner&&!isSub(G,k)&&k!==S.me&&(G.owner===S.me||isSub(G,S.me));}
@@ -408,8 +416,8 @@ function gInvite(G,k){const u={};u['groups/'+G.id+'/invites/'+k]=true;u['groups/
 
 function renderGroups(){const L=$('gList');L.textContent='';const gs=Object.values(S.groups).filter(G=>G.name);secHead('gHead','그룹 대화 · 별자리',gs.length);
   gs.forEach(G=>{const n=Object.keys(G.members).length;const b=el('button','item');b.type='button';const d=el('span');const sz=Math.round(8+4*Math.sqrt(n));d.style.cssText='display:inline-block;flex:none;border-radius:50%;width:'+sz+'px;height:'+sz+'px;background:#fff;box-shadow:0 0 16px 4px #ffffff55';
-    const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1';const t=el('span','t',G.name);t.append(el('span','tag','그룹 '+n));if(G.owner===S.me)t.append(el('span','tag ow','방장'));else if(isSub(G,S.me))t.append(el('span','tag ow','부방장'));
-    const onl=memberKeys(G).filter(k=>k===S.me||S.L[k]).length;const last=G.msgs.filter(m=>!m.local).slice(-1)[0];const s2=el('span','s',last?(last.sys?last.text:nickOf(last.from)+': '+last.text):'빛 '+n+'개 · 지금 '+onl+'명');s2.style.cssText='white-space:nowrap;overflow:hidden;text-overflow:ellipsis';w.append(t,s2);b.append(d,w);
+    const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1';const t=el('span','t',G.name);t.append(el('span','tag','그룹 '+n));if(G.owner===S.me)t.append(el('span','tag ow','방장'));else if(isSub(G,S.me))t.append(el('span','tag ow','부방장'));if(G.sample)t.append(el('span','tag','샘플'));
+    const onl=memberKeys(G).filter(k=>k===S.me||online(k)).length;const last=G.msgs.filter(m=>!m.local).slice(-1)[0];const s2=el('span','s',last?(last.sys?last.text:nickOf(last.from)+': '+last.text):'빛 '+n+'개 · 지금 '+onl+'명');s2.style.cssText='white-space:nowrap;overflow:hidden;text-overflow:ellipsis';w.append(t,s2);b.append(d,w);
     if(G.unread)b.append(el('span','badge',String(G.unread)));b.onclick=()=>openGroup(G.id);L.append(b);});
   const I=$('ginvList');I.textContent='';const ivs=Object.values(S.ginv);$('ginvHead').style.display=ivs.length?'block':'none';
   ivs.forEach(iv=>{const row=el('div','item');row.style.cursor='default';const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;flex:1;min-width:0';w.append(el('span','t','「'+iv.name+'」'),el('span','s',nickOf(iv.from)+'님의 초대'));row.append(w,sbtn('참여','solid',()=>acceptGInvite(iv)),sbtn('거절',null,()=>declineGInvite(iv)));I.append(row);});
@@ -421,11 +429,14 @@ async function declineGInvite(iv){const u={};u['groups/'+iv.id+'/invites/'+S.me]
 let gnPick=new Set();
 $('gNewBtn').onclick=()=>{if(Object.keys(S.groups).length>=GMAX){toast('별자리는 3개까지 들어갈 수 있어요');return;}gnPick=new Set();$('gName').value='';$('gnErr').style.display='none';renderGNew();show('gnew');};
 $('gnBack').onclick=()=>{renderList();show('chats');};$('gName').oninput=()=>{$('gnErr').style.display='none';};
-function renderGNew(){const C=$('gnCands');C.textContent='';const cs=[...S.friends];
+function renderGNew(){const C=$('gnCands');C.textContent='';const cs=allFriends();
   if(!cs.length){C.append(el('p','empty2','함께할 친구가 아직 없어요. 이어진 빛과 친구를 맺은 뒤 다시 와 주세요.'));return;}
   cs.forEach(k=>{const lab=el('label','item');const cb=el('input');cb.type='checkbox';cb.style.cssText='width:20px;height:20px;accent-color:#FFB86B';cb.checked=gnPick.has(k);cb.onchange=()=>{if(cb.checked){if(gnPick.size>=MMAX-1){cb.checked=false;return;}gnPick.add(k);}else gnPick.delete(k);$('gnErr').style.display='none';};
-    const o=S.L[k];const p=o||S.P[k]||{g:'f'};const d=el('span');d.style.cssText=dotStyle(COL[p.g],14,!o);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px';w.append(el('span','t',nickOf(k)),el('span','s',o?'접속 중':'오프라인 · 다음에 접속하면 초대를 볼 수 있어요'));lab.append(cb,d,w);C.append(lab);});}
+    const o=findO(k);const p=o||S.P[k]||{g:'f'};const d=el('span');d.style.cssText=dotStyle(COL[p.g],14,!o);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px';w.append(el('span','t',nickOf(k)),el('span','s',k[0]==='s'?'샘플 친구':o?'접속 중':'오프라인 · 다음에 접속하면 초대를 볼 수 있어요'));lab.append(cb,d,w);C.append(lab);});
+  C.append(el('p','empty2','샘플 친구와 실제 친구는 한 별자리에 같이 넣을 수 없어요.'));}
 $('gnMake').onclick=async()=>{const err=t=>{$('gnErr').textContent=t;$('gnErr').style.display='block';};const n=cleanName($('gName').value);if(!n)return err('별자리 이름을 써 주세요');if(gnPick.size<2)return err('함께할 친구를 2명 이상 골라 주세요');
+  const picks=[...gnPick];const nb=picks.filter(k=>k[0]==='s').length;if(nb&&nb<picks.length)return err('샘플 친구와 실제 친구는 한 별자리에 같이 넣을 수 없어요');
+  if(nb){const G=createSampleGroup(n,picks);setTimeout(()=>openGroup(G.id),100);return;}
   const g=db.ref('groups').push().key;const u={};u['groups/'+g+'/name']=n;u['groups/'+g+'/owner']=S.me;u['groups/'+g+'/created']=TS;u['groups/'+g+'/members/'+S.me]=TS;u['mygroups/'+S.me+'/'+g]=true;
   gnPick.forEach(k=>{u['groups/'+g+'/invites/'+k]=true;u['ginv/'+k+'/'+g]={name:n,from:S.me,at:TS};});
   $('gnMake').disabled=true;try{await db.ref().update(u);await postSys(g,'별자리가 만들어졌어요. @아이디 로 쓰면 그 사람에게만 귓말이 가요.');watchGroup(g);setTimeout(()=>openGroup(g),300);}catch(e){err('만들지 못했어요. 다시 시도해 주세요');}$('gnMake').disabled=false;};
@@ -434,7 +445,7 @@ function openGroup(g){const G=S.groups[g];if(!G)return;S.gChat=g;G.unread=0;S.at
 $('gcBack').onclick=()=>{S.gChat=null;renderList();show('chats');};
 $('gcMembers').onclick=()=>{const P=$('gcPanel');S.gOpen=null;P.dataset.mode=P.dataset.mode==='members'?'':'members';renderGPanels();};
 $('gcInvite').onclick=()=>{const P=$('gcPanel');P.dataset.mode=P.dataset.mode==='invite'?'':'invite';renderGPanels();};
-function renderGPanels(){const G=S.groups[S.gChat];if(!G||!G.name)return;const mk=memberKeys(G);const onl=mk.filter(k=>k===S.me||S.L[k]).length;
+function renderGPanels(){const G=S.groups[S.gChat];if(!G||!G.name)return;const mk=memberKeys(G);const onl=mk.filter(k=>k===S.me||online(k)).length;
   $('gcTitle').textContent=G.name;$('gcSub').textContent='빛 '+mk.length+'개 · 지금 '+onl+'명'+(G.owner===S.me?' · 내가 방장':isSub(G,S.me)?' · 내가 부방장':'');
   const A=$('gcApprove');A.textContent='';const sug=Object.keys(G.sug||{});
   if(G.owner===S.me&&sug.length){A.append(el('p','lbl','방장 승인 요청'));sug.forEach(x=>{const r=el('div','mrow');r.append(el('span','t',nickOf(G.sug[x].by)+'님이 '+nickOf(x)+'님을 초대하려고 해요'),
@@ -442,12 +453,13 @@ function renderGPanels(){const G=S.groups[S.gChat];if(!G||!G.name)return;const m
       sbtn('거절',null,()=>{const u={};u['groups/'+G.id+'/sug/'+x]=null;u['groups/'+G.id+'/no/'+x]={by:G.sug[x].by,at:TS};db.ref().update(u).catch(()=>{});}));A.append(r);});A.style.display='flex';}else A.style.display='none';
   const P=$('gcPanel');const mode=P.dataset.mode;P.textContent='';if(!mode){P.style.display='none';return;}P.style.display='flex';
   if(mode==='members'){
-    mk.forEach(k=>{const on=k===S.me||!!S.L[k];const p=findO(k)||S.P[k]||{g:'f'};const av=el('span','av');const d=el('span');d.style.cssText='display:block;width:12px;height:12px;border-radius:50%;background:'+(k===S.me?'#fff':COL[p.g])+';'+(on?'':'opacity:.35');av.append(d,el('span','st '+(on?'on':'off')));
+    mk.forEach(k=>{const on=k===S.me||online(k);const p=findO(k)||S.P[k]||{g:'f'};const av=el('span','av');const d=el('span');d.style.cssText='display:block;width:12px;height:12px;border-radius:50%;background:'+(k===S.me?'#fff':COL[p.g])+';'+(on?'':'opacity:.35');av.append(d,el('span','st '+(on?'on':'off')));
       const t=el('span','t',nickOf(k)+(k===S.me?' (나)':''));if(k===G.owner)t.append(el('span','tag ow','방장'));else if(isSub(G,k)){const s2=el('span','tag fr','부방장');t.append(s2);}
       const acts=[];
       if(k!==S.me)acts.push(sbtn('귓말',null,()=>{S.gOpen=null;setAt(k);P.dataset.mode='';renderGPanels();$('gIn').focus();}));
-      if(G.owner===S.me&&k!==S.me)acts.push(sbtn(isSub(G,k)?'부방장 해제':'부방장 지정',null,()=>{if(!isSub(G,k)&&Object.keys(G.subs||{}).length>=3){toast('부방장은 3명까지 정할 수 있어요');return;}db.ref('groups/'+G.id+'/subs/'+k).set(isSub(G,k)?null:TS).then(()=>postSys(G.id,isSub(G,k)?nickOf(k)+'님의 부방장을 해제했어요':nickOf(k)+'님을 부방장으로 정했어요')).catch(()=>toast('바꾸지 못했어요'));}));
-      if(canKick(G,k)){const kb=sbtn('내보내기',null,()=>{});armBtn(kb,'정말 내보내기',()=>{S.armed=false;S.gOpen=null;const who=nickOf(k);db.ref('groups/'+G.id+'/members/'+k).remove().then(()=>{postSys(G.id,(G.owner===S.me?'방장 ':'부방장 ')+label(S.prof)+'님이 '+who+'님을 내보냈어요');toast(who+'님을 내보냈어요');}).catch(()=>toast('내보내지 못했어요'));},'내보내기');acts.push(kb);}
+      if(G.owner===S.me&&k!==S.me)acts.push(sbtn(isSub(G,k)?'부방장 해제':'부방장 지정',null,()=>{if(!isSub(G,k)&&Object.keys(G.subs||{}).length>=3){toast('부방장은 3명까지 정할 수 있어요');return;}
+        if(G.sample){const was=isSub(G,k);if(was)delete G.subs[k];else G.subs[k]=Date.now();postSys(G.id,was?nickOf(k)+'님의 부방장을 해제했어요':nickOf(k)+'님을 부방장으로 정했어요');renderGPanels();return;}db.ref('groups/'+G.id+'/subs/'+k).set(isSub(G,k)?null:TS).then(()=>postSys(G.id,isSub(G,k)?nickOf(k)+'님의 부방장을 해제했어요':nickOf(k)+'님을 부방장으로 정했어요')).catch(()=>toast('바꾸지 못했어요'));}));
+      if(canKick(G,k)){const kb=sbtn('내보내기',null,()=>{});armBtn(kb,'정말 내보내기',()=>{S.armed=false;S.gOpen=null;const who=nickOf(k);if(G.sample){delete G.members[k];delete G.subs[k];postSys(G.id,'방장 '+label(S.prof)+'님이 '+who+'님을 내보냈어요');toast(who+'님을 내보냈어요');renderGPanels();return;}db.ref('groups/'+G.id+'/members/'+k).remove().then(()=>{postSys(G.id,(G.owner===S.me?'방장 ':'부방장 ')+label(S.prof)+'님이 '+who+'님을 내보냈어요');toast(who+'님을 내보냈어요');}).catch(()=>toast('내보내지 못했어요'));},'내보내기');acts.push(kb);}
       const rb=el('button','mrow');rb.type='button';rb.style.cssText='width:100%;background:transparent;border:0;color:var(--ink);text-align:left;padding:0;cursor:'+(acts.length?'pointer':'default');rb.append(av,t,el('span',null,acts.length?(S.gOpen===k?'▴':'▾'):''));rb.lastChild.style.cssText='color:var(--dim);font-size:13px';rb.setAttribute('aria-expanded',S.gOpen===k);
       rb.onclick=()=>{if(!acts.length)return;S.gOpen=S.gOpen===k?null:k;S.armed=false;renderGPanels();};
       const wrap=el('div');wrap.style.cssText='display:flex;flex-direction:column;gap:6px;'+(S.gOpen===k?'background:#1A1A1F;border-radius:12px;padding:6px 8px 10px;margin:0 -8px':'');wrap.append(rb);
@@ -457,14 +469,14 @@ function renderGPanels(){const G=S.groups[S.gChat];if(!G||!G.name)return;const m
     const lv=sbtn('별자리 나가기',null,()=>{});lv.style.alignSelf='flex-start';lv.style.marginTop='4px';armBtn(lv,'정말 나가기',()=>{S.armed=false;leaveGroup(G);},'별자리 나가기');P.append(lv);
   }else{
     P.append(el('p','lbl',G.owner===S.me?'초대할 친구 · 방장이라 바로 초대돼요':'초대할 친구 · 방장이 승인하면 초대가 가요'));
-    const cs=[...S.friends].filter(k=>!G.members[k]&&!G.invites[k]);
+    const cs=(G.sample?[...S.botFriends]:[...S.friends]).filter(k=>!G.members[k]&&!G.invites[k]);
     if(!cs.length)P.append(el('p','empty2','초대할 수 있는 친구가 없어요.'));
     if(mk.length+Object.keys(G.invites||{}).length>=MMAX)P.append(el('p','empty2','한 별자리에는 8명까지 들어갈 수 있어요.'));
-    else cs.forEach(k=>{const r=el('div','mrow');const p=findO(k)||S.P[k]||{g:'f'};const d=el('span');d.style.cssText=dotStyle(COL[p.g],12,!S.L[k]);r.append(d,el('span','t',nickOf(k)));
+    else cs.forEach(k=>{const r=el('div','mrow');const p=findO(k)||S.P[k]||{g:'f'};const d=el('span');d.style.cssText=dotStyle(COL[p.g],12,!online(k));r.append(d,el('span','t',nickOf(k)));
       if(G.sug[k])r.append(el('span','off-dot','승인 대기'));else if(G.no&&G.no[k]&&G.owner!==S.me)r.append(el('span','off-dot','방장이 거절함'));
-      else r.append(sbtn(G.owner===S.me?'초대':'초대 요청','solid',()=>{if(G.owner===S.me){gInvite(G,k).then(()=>postSys(G.id,nickOf(k)+'님에게 초대를 보냈어요')).catch(()=>toast('초대하지 못했어요'));}else{S.mySug[G.id]=S.mySug[G.id]||{};S.mySug[G.id][k]=1;db.ref('groups/'+G.id+'/sug/'+k).set({by:S.me,at:TS}).then(()=>{gSys(G,nickOf(k)+'님 초대를 방장에게 요청했어요');}).catch(()=>toast('요청하지 못했어요'));}}));P.append(r);});}
+      else r.append(sbtn(G.owner===S.me?'초대':'초대 요청','solid',()=>{if(G.sample){G.members[k]=Date.now();postSys(G.id,nickOf(k)+'님이 들어왔어요 (샘플)');renderGPanels();return;}if(G.owner===S.me){gInvite(G,k).then(()=>postSys(G.id,nickOf(k)+'님에게 초대를 보냈어요')).catch(()=>toast('초대하지 못했어요'));}else{S.mySug[G.id]=S.mySug[G.id]||{};S.mySug[G.id][k]=1;db.ref('groups/'+G.id+'/sug/'+k).set({by:S.me,at:TS}).then(()=>{gSys(G,nickOf(k)+'님 초대를 방장에게 요청했어요');}).catch(()=>toast('요청하지 못했어요'));}}));P.append(r);});}
 }
-async function leaveGroup(G){const g=G.id;S['left'+g]=1;const me=S.me;const others2=memberKeys(G).filter(k=>k!==me);
+async function leaveGroup(G){const g=G.id;if(G.sample){delete S.groups[g];saveSampleGroups();S.gChat=null;renderList();show('chats');toast(G.name+'에서 나왔어요');return;}S['left'+g]=1;const me=S.me;const others2=memberKeys(G).filter(k=>k!==me);
   try{
     if(G.owner===me){
       if(!others2.length){await db.ref('groups/'+g).remove();await db.ref('mygroups/'+me+'/'+g).remove();}
@@ -478,7 +490,7 @@ function renderGMsgs(){const G=S.groups[S.gChat];const M=$('gmsgs');M.textConten
   G.msgs.forEach(m=>{if(m.sys){M.append(el('p','sys',m.text));return;}
     const wt=m.to?(m.me?'귓말 → '+nickOf(m.to):nickOf(m.from)+'님의 귓말'):(m.me?'':nickOf(m.from));if(wt)M.append(el('p','who'+(m.me?' r':'')+(m.to?' w':''),wt));
     M.append(el('div','b '+(m.me?'me':'them')+(m.to?' w':''),m.text));});M.scrollTop=M.scrollHeight;}
-function plainNick(k){return (S.L[k]||S.P[k]||{}).nick||'';}
+function plainNick(k){return (findO(k)||S.P[k]||{}).nick||'';}
 function setAt(k){S.atTo=k;$('gIn').value='@'+plainNick(k)+' ';renderAt();}
 function renderAt(){const bar=$('atBar');bar.textContent='';const G=S.groups[S.gChat];const m=$('gIn').value.match(/^@(\S*)$/);if(!G||!m){bar.style.display='none';return;}
   const ms=memberKeys(G).filter(k=>k!==S.me&&plainNick(k).startsWith(m[1]));if(!ms.length){bar.style.display='none';return;}
@@ -489,6 +501,7 @@ $('gcompose').onsubmit=async e=>{e.preventDefault();const G=S.groups[S.gChat];if
   if(v.startsWith('@')){const mm=v.match(/^@(\S+)\s+([\s\S]+)$/);if(!mm)return err('@아이디 뒤에 한 칸 띄우고 할 말을 써 주세요');
     if(S.atTo&&plainNick(S.atTo)===mm[1])to=S.atTo;else{const hits=memberKeys(G).filter(k=>k!==S.me&&plainNick(k)===mm[1]);if(!hits.length)return err('@'+mm[1]+' 은(는) 이 별자리에 없어요');to=hits[0];}
     text=mm[2].trim();}
+  if(G.sample){const m={id:'m'+Date.now()+Math.random(),from:S.me,to,text:text.slice(0,500),at:Date.now()};addGMsg(G.id,m);saveSampleGroups();$('gIn').value='';S.atTo=null;renderAt();sampleGroupReply(G,m);return;}
   try{if(to){const d={from:S.me,to,text:text.slice(0,500),at:TS};const u={};const id=db.ref().push().key;u['gw/'+G.id+'/'+to+'/'+id]=d;u['gw/'+G.id+'/'+S.me+'/'+id]=d;await db.ref().update(u);}
     else await db.ref('gmsgs/'+G.id).push({from:S.me,text:text.slice(0,500),at:TS});
     $('gIn').value='';S.atTo=null;renderAt();}catch(x){err('보내지 못했어요. 다시 시도해 주세요');}};
