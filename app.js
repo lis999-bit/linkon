@@ -1,5 +1,8 @@
 (function(){
 'use strict';
+const APP_VERSION='2026.11.14-1';
+(function(){let shown=false;async function check(){if(shown)return;try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();if(j&&j.v&&j.v!==APP_VERSION){shown=true;document.getElementById('upd').classList.add('on');}}catch(e){}}
+  document.getElementById('updGo').onclick=()=>location.reload();setInterval(check,60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')check();});setTimeout(check,5000);})();
 const $=id=>document.getElementById(id);
 const el=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;};
 

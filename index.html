@@ -61,6 +61,9 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .vsw.mine .vk{transform:translateX(86px)}
 .vl{flex:1;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--mute);position:relative;z-index:1;transition:color .22s;pointer-events:none}
 .vsw:not(.mine) .vl[data-v="all"],.vsw.mine .vl[data-v="mine"]{color:var(--bg);font-weight:500}
+.upd{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(456px,calc(100% - 24px));display:none;align-items:center;gap:10px;background:#1C1C22;border:1px solid #534AB7;border-radius:16px;padding:10px 10px 10px 16px;z-index:40;font-size:14px}
+.upd.on{display:flex}
+.testbar{position:fixed;top:0;left:0;right:0;z-index:50;background:#FAC775;color:#412402;font-size:12px;text-align:center;padding:3px 0;font-weight:500;pointer-events:none}
 .sheet{position:absolute;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));background:#16161B;border:1px solid var(--line);border-radius:20px;padding:18px;display:none;flex-direction:column;gap:12px;z-index:4;max-height:70vh;overflow-y:auto}
 .sheet.on{display:flex}
 .dot{display:inline-block;flex:none;border-radius:50%}
@@ -289,6 +292,7 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
   <form class="compose" id="compose"><label class="sr" for="msgIn">메시지</label><input id="msgIn" placeholder="같은 하늘 아래에서 한마디" autocomplete="off" maxlength="500"><button class="btn solid" type="submit">보내기</button></form>
 </section>
 
+<div class="upd" id="upd" role="status"><span style="flex:1">새 버전이 있어요. 새로고침하면 바로 적용돼요.</span><button class="btn solid" id="updGo" style="min-height:36px;padding:0 14px;font-size:13px">새로고침</button></div>
 <div class="notice" id="notice" role="status"><span class="dot" id="nDot" style="width:12px;height:12px"></span><span id="nText" style="flex:1;font-size:14px;line-height:1.4"></span><button class="btn solid" id="nView" style="min-height:36px;padding:0 14px;font-size:13px">보기</button></div>
 </div>
 
@@ -297,7 +301,7 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 (function(){var dp=null;var btns=function(){return document.querySelectorAll('.instBtn');};
 var standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 var ios=/iPhone|iPad|iPod/i.test(navigator.userAgent);
-function showAll(){if(standalone)return;btns().forEach(function(b){b.style.display='';});}
+function showAll(){if(standalone||/\/test\//.test(location.pathname))return;btns().forEach(function(b){b.style.display='';});}
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dp=e;showAll();});
 window.addEventListener('appinstalled',function(){dp=null;btns().forEach(function(b){b.style.display='none';});});
 if(ios&&!standalone)showAll();
@@ -307,6 +311,10 @@ document.addEventListener('click',function(e){var b=e.target.closest&&e.target.c
   else{b.textContent='브라우저 메뉴 ⋮ → 홈 화면에 추가를 눌러 주세요';}});
 })();
 </script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>
+<script>
+var IS_TEST=/\/test\//.test(location.pathname);
+if(IS_TEST){var tb=document.createElement('div');tb.className='testbar';tb.textContent='시험 버전 · 실제 서버와 같은 데이터를 써요';document.body.appendChild(tb);document.title='링크온 (시험)';}
+else if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+</script>
 </body>
 </html>
