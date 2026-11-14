@@ -1,5 +1,8 @@
 (function(){
 'use strict';
+const SPLASH_AT=Date.now();
+function hideSplash(){const sp=document.getElementById('splash');if(!sp||sp.classList.contains('out'))return;setTimeout(()=>{sp.classList.add('out');setTimeout(()=>sp.remove(),700);},Math.max(0,1600-(Date.now()-SPLASH_AT)));}
+setTimeout(hideSplash,6000);
 const APP_VERSION='2026.11.14-1';
 (function(){let shown=false;async function check(){if(shown)return;try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();if(j&&j.v&&j.v!==APP_VERSION){shown=true;document.getElementById('upd').classList.add('on');}}catch(e){}}
   document.getElementById('updGo').onclick=()=>location.reload();setInterval(check,60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')check();});setTimeout(check,5000);})();
@@ -33,7 +36,7 @@ function armBtn(b,armText,fn,normalText){b.onclick=()=>{if(b.dataset.arm){fn();r
 
 /* ---------- 설정 확인 ---------- */
 const cfg=window.LIGHTROOM_FIREBASE;
-if(!window.firebase||!cfg||!cfg.apiKey||/여기에/.test(cfg.apiKey)){show('setup');return;}
+if(!window.firebase||!cfg||!cfg.apiKey||/여기에/.test(cfg.apiKey)){show('setup');hideSplash();return;}
 firebase.initializeApp(cfg);
 const auth=firebase.auth(),db=firebase.database(),TS=firebase.database.ServerValue.TIMESTAMP;
 
@@ -70,7 +73,7 @@ $('authForm').onsubmit=async e=>{e.preventDefault();const nick=cleanNick($('aId'
 $('logout').onclick=async()=>{await lightOff();S.subs.forEach(f=>f());S.subs=[];Object.values(S.dmSubs).forEach(f=>f());S.dmSubs={};Object.values(S.gSubs).forEach(a=>a.forEach(f=>f()));S.gSubs={};await auth.signOut();location.reload();};
 
 auth.onAuthStateChanged(async u=>{
-  if(!u){show('auth');setMode('new');return;}
+  if(!u){show('auth');setMode('new');hideSplash();return;}
   S.me=u.uid;
   let p=null;try{p=(await db.ref('profiles/'+u.uid).get()).val();}catch(e){}
   if(!p){for(let i=0;i<5&&!p;i++){await new Promise(r=>setTimeout(r,600));try{p=(await db.ref('profiles/'+u.uid).get()).val();}catch(e){}}}
@@ -80,7 +83,7 @@ auth.onAuthStateChanged(async u=>{
   try{const ph=(await db.ref('photos/'+S.me).get()).val();S.photo=okImg(ph)?ph:null;}catch(e){}
   paintMe();paintReq();paintSample();loadSampleFriends();loadSampleGroups();
   $('offTitle').textContent=label(S.prof)+'님, 불을 켜 볼까요?';
-  startSubs();show('off');
+  startSubs();show('off');hideSplash();
 });
 function saveSetting(k,v){if(S.me)db.ref('settings/'+S.me+'/'+k).set(v).catch(()=>{});}
 
@@ -373,9 +376,10 @@ function renderLights(){setLTab(S.ltab);const L=$('linkedList');L.textContent=''
 function showLights(){S.sel=null;$('sheet').classList.remove('on');$('meSheet').classList.remove('on');renderLights();show('lightsScr');}
 $('toLights').onclick=showLights;$('lBack').onclick=()=>show('room');
 function renderMyPicks(){const M=$('myPickList');M.textContent='';const ps=others().filter(o=>picked(o.key)&&!isLinked(o.key));$('myPickHead').textContent='내가 선택한 빛'+(ps.length?' '+ps.length+'개':'');$('noMyPick').style.display=ps.length?'none':'block';
-  ps.forEach(o=>{const row=el('div','item');row.style.cursor='default';const d=el('span');d.style.cssText=dotStyle(COL[o.g],14);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;cursor:pointer';const left=pickLeft(o.key);w.append(el('span','t',label(o)),el('span','s',desc(o)+(left!=null?' · '+Math.max(1,Math.ceil(left/60000))+'분 남음':'')));w.onclick=()=>focusLight(o.key);
-    row.append(d,w,sbtn('취소',null,()=>{S.sel=o.key;$('sToggle').onclick();setTimeout(renderLights,300);}));M.append(row);});}
-function renderAdm(){renderMyPicks();const A=$('adm');A.textContent='';const adms=others().filter(o=>isAdmirer(o.key));$('admHead').textContent='나를 선택한 빛'+(adms.length?' '+adms.length+'개':'');$('noAdm').style.display=adms.length?'none':'block';$('admHint').style.display=adms.length?'block':'none';
+  ps.forEach(o=>{const row=el('div','item');const d=el('span');d.style.cssText=dotStyle(COL[o.g],14);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1';const left=pickLeft(o.key);w.append(el('span','t',label(o)),el('span','s',desc(o)+(left!=null?' · '+Math.max(1,Math.ceil(left/60000))+'분 남음':'')));
+    row.classList.add('swipe');row.style.cursor='pointer';row.append(d,w);attachSwipe(row,()=>{cancelPick(o.key);},()=>focusLight(o.key));M.append(row);});}
+function cancelPick(k){if(k[0]==='s'){S.botPicks.delete(k);S.botPickAt.delete(k);onPeopleChanged();}else{const u={};u['mypicks/'+S.me+'/'+k]=null;u['likes/'+k+'/'+S.me]=null;db.ref().update(u).catch(()=>{});}toast(nickOf(k)+'님에게 켠 스위치를 껐어요');}
+function renderAdm(){renderMyPicks();const A=$('adm');A.textContent='';const adms=others().filter(o=>isAdmirer(o.key));$('admHead').textContent='나를 선택한 빛'+(adms.length?' '+adms.length+'개':'');$('noAdm').style.display=adms.length?'none':'block';
   adms.forEach(o=>{const b=el('button','item swipe');b.type='button';const d=el('span');d.style.cssText=dotStyle(COL[o.g],14);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px';w.append(el('span','t',label(o)),el('span','s',desc(o)+' · 나를 골랐어요'));b.append(d,w);attachSwipe(b,()=>rejectAdmirer(o.key),()=>focusLight(o.key));A.append(b);});}
 function rejectAdmirer(k){if(k[0]==='s'){const b=BOTS.find(x=>x.key===k);if(b)b.picksMe=false;}else db.ref('likes/'+S.me+'/'+k).remove().catch(()=>{});toast(nickOf(k)+'님의 빛을 거절했어요');}
 function attachSwipe(e,onSwipe,onTap){let sx=0,sy=0,dx=0,on=false,moved=false,id=null;
