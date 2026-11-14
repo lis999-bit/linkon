@@ -385,14 +385,23 @@ $('chFr').onclick=async()=>{const k=S.chatWith;if(!k||isFriend(k)||isOut(k)||isN
   if(!isLinked(k)){toast('친구 신청은 서로 이어진 빛끼리만 할 수 있어요');return;}
   const u={};u['freq/'+k+'/'+S.me]={at:TS};u['settings/'+S.me+'/myreq/'+k]=true;
   try{await db.ref().update(u);toast('친구를 신청했어요. 상대가 수락하면 친구가 돼요');}catch(e){toast('친구 신청을 보내지 못했어요');}};
-function renderMsgs(){const M=$('msgs');M.textContent='';const k=S.chatWith;
+const WD=['일','월','화','수','목','금','토'];
+function fmtTime(ts){const d=new Date(ts);let h=d.getHours();const ap=h<12?'오전':'오후';h=h%12||12;return ap+' '+h+':'+String(d.getMinutes()).padStart(2,'0');}
+function fmtDate(ts){const d=new Date(ts);return d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 '+WD[d.getDay()]+'요일';}
+function dayKey(ts){const d=new Date(ts);return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();}
+function dateSep(ts){const p=el('p','datesep',fmtDate(ts));return p;}
+function withTime(bubble,ts,me){const r=el('div','brow'+(me?' me':''));const t=el('span','btime',ts?fmtTime(ts):'');if(me)r.append(t,bubble);else r.append(bubble,t);return r;}
+function startLine(ts,text){const p=el('p','sys',fmtDate(ts)+' '+fmtTime(ts)+' · '+text);return p;}
+function renderMsgs(){const M=$('msgs');M.textContent='';const k=S.chatWith;const ms=S.dms[k]||[];
+  if(ms.length&&ms[0].at)M.append(startLine(ms[0].at,'대화가 시작됐어요'));
   M.append(el('p','sys',k[0]==='s'?'샘플 빛이에요. 실제 사람이 아니라 자동으로 짧게 답해요.':isFriend(k)?'친구와의 1:1 대화예요. 기록은 서버에 저장돼요.':'두 빛이 이어졌어요. 기록은 서버에 저장돼요.'));
-  let prev=null;(S.dms[k]||[]).forEach(m=>{const b=el('div','b '+(m.me?'me':'them'),m.text);
-    if(m.me){M.append(b);prev='me';return;}const first=prev!=='them';prev='them';M.append(themRow(k,first?nickOf(k):null,b,first));});M.scrollTop=M.scrollHeight;}
+  let prev=null,day=ms.length&&ms[0].at?dayKey(ms[0].at):null;ms.forEach(m=>{if(m.at&&dayKey(m.at)!==day){day=dayKey(m.at);M.append(dateSep(m.at));prev=null;}
+    const b=el('div','b '+(m.me?'me':'them'),m.text);
+    if(m.me){M.append(withTime(b,m.at,true));prev='me';return;}const first=prev!=='them';prev='them';M.append(themRow(k,first?nickOf(k):null,withTime(b,m.at,false),first));});M.scrollTop=M.scrollHeight;}
 function themRow(k,name,bubble,showAv,nameColor){const row=el('div','mrow2');const p=findO(k)||S.P[k]||{g:'f'};
   const av=showAv?avatarEl(k,p.g,34,false):el('span');if(!showAv)av.style.cssText='width:34px;flex:none';
   const col=el('div');col.style.cssText='display:flex;flex-direction:column;gap:4px;min-width:0;max-width:calc(100% - 44px)';
-  if(name){const n=el('span','who2',name);if(nameColor)n.style.color=nameColor;col.append(n);}bubble.style.maxWidth='100%';col.append(bubble);row.append(av,col);return row;}
+  if(name){const n=el('span','who2',name);if(nameColor)n.style.color=nameColor;col.append(n);}col.append(bubble);row.append(av,col);return row;}
 $('msgIn').oninput=()=>{$('err').style.display='none';};
 $('compose').onsubmit=async e=>{e.preventDefault();const k=S.chatWith;const t=$('msgIn').value.trim();const err=m=>{$('err').textContent=m;$('err').style.display='block';};
   if(!t)return err('한마디를 먼저 써 주세요');
@@ -631,10 +640,12 @@ async function leaveGroup(G){const g=G.id;if(G.sample){delete S.groups[g];saveSa
 const WCOL=['#C3B5FF','#F4A6C8','#8EE3C8','#9CCBFF','#C7E68A','#FFB4A0','#F6D58A','#E0B3FF'];
 function wColor(k){return WCOL[hash(String(k))%WCOL.length];}
 function renderGMsgs(){const G=S.groups[S.gChat];const M=$('gmsgs');M.textContent='';if(!G)return;
-  G.msgs.forEach(m=>{if(m.sys){M.append(el('p','sys',m.text));return;}
+  const first=G.msgs.find(m=>m.at);if(first)M.append(startLine(first.at,'별자리가 열렸어요'));let day=first?dayKey(first.at):null;
+  G.msgs.forEach(m=>{if(m.at&&dayKey(m.at)!==day){day=dayKey(m.at);M.append(dateSep(m.at));}
+    if(m.sys){M.append(el('p','sys',m.text));return;}
     const wc=m.to?wColor(m.me?m.to:m.from):null;const bb=el('div','b '+(m.me?'me':'them')+(m.to?' w':''),m.text);if(wc){bb.style.color=wc;bb.style.borderColor=wc+'99';}
-    if(m.me){if(m.to){const w=el('p','who r w','귓말 → '+nickOf(m.to));w.style.color=wc;M.append(w);}M.append(bb);return;}
-    M.append(themRow(m.from,m.to?nickOf(m.from)+'님의 귓말':nickOf(m.from),bb,true,wc));});M.scrollTop=M.scrollHeight;}
+    if(m.me){if(m.to){const w=el('p','who r w','귓말 → '+nickOf(m.to));w.style.color=wc;M.append(w);}M.append(withTime(bb,m.at,true));return;}
+    M.append(themRow(m.from,m.to?nickOf(m.from)+'님의 귓말':nickOf(m.from),withTime(bb,m.at,false),true,wc));});M.scrollTop=M.scrollHeight;}
 function plainNick(k){return (findO(k)||S.P[k]||{}).nick||'';}
 function setAt(k){S.atTo=k;$('gIn').value='@'+plainNick(k)+' ';renderAt();}
 function renderAt(){const bar=$('atBar');bar.textContent='';const G=S.groups[S.gChat];const m=$('gIn').value.match(/^@(\S*)$/);if(!G||!m){bar.style.display='none';return;}
