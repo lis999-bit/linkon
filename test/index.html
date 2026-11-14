@@ -55,6 +55,8 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .bottom .btn{background:#1A1A1F;color:var(--ink);white-space:nowrap;padding:0 14px}
 #toChats{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 #lightOff{background:transparent!important;color:var(--mute)!important}
+.bottom .btn{padding:0 12px}
+#toLights,#toFriends{flex:none}
 .vsw{position:relative;display:flex;width:184px;height:52px;border-radius:999px;background:#16161B;border:1px solid var(--line);padding:5px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer;z-index:6;pointer-events:auto}
 .vk{position:absolute;top:5px;left:5px;width:86px;height:40px;border-radius:999px;background:var(--ink);transition:transform .22s ease}
 .vsw.drag .vk{transition:none}
@@ -72,7 +74,7 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .toast.on{opacity:1}
 .notice{position:fixed;left:50%;width:min(456px,calc(100% - 24px));top:calc(78px + env(safe-area-inset-top));display:flex;align-items:center;gap:10px;background:#1C1C22;border:1px solid #3A3934;border-radius:16px;padding:10px 10px 10px 14px;z-index:30;transform:translate(-50%,-160%);opacity:0;transition:transform .45s,opacity .45s}
 .notice.on{transform:translate(-50%,0);opacity:1}
-#chats,#friends,#gnew{flex-direction:column;padding:calc(16px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom));gap:12px}
+#chats,#friends,#gnew,#lightsScr{flex-direction:column;padding:calc(16px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom));gap:12px}
 #chat,#gchat{flex-direction:column;height:100vh;height:100dvh}
 .head{display:flex;align-items:center;gap:10px}
 .head h2{margin:0;font-size:20px;font-weight:500}
@@ -214,6 +216,7 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
   </div>
   <div class="bottom">
     <button class="btn" id="toChats">대화방</button>
+    <button class="btn" id="toLights">빛</button>
     <button class="btn" id="toFriends">친구</button>
     <button class="btn" id="lightOff">불 끄기</button>
   </div>
@@ -234,13 +237,25 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
   <div id="secOne" class="col">
     <p class="sec" id="oneHead">1:1 대화</p>
     <div id="list" class="col"></div>
-    <p id="noLinks" class="empty2">아직 1:1 대화방이 없어요. 빛과 서로 이어지거나, 친구 목록에서 친구를 눌러 말을 걸면 대화방이 생겨요.</p>
-  </div>
-  <div id="secAdm" class="col">
-    <p class="lbl" id="admHead" style="margin-top:4px;display:none">나를 고른 빛 · 옆으로 밀면 거절</p>
-    <div id="adm" class="col"></div>
+    <p id="noLinks" class="empty2">아직 1:1 대화방이 없어요. 이어진 빛이나 친구에게 말을 걸면 대화방이 생겨요.</p>
   </div>
   <p style="margin:auto 0 0;font-size:12px;line-height:1.6;color:var(--dim)">대화 기록은 서버에 저장돼서, 다시 로그인해도 그대로 남아 있어요.</p>
+</section>
+
+<section id="lightsScr" class="screen" aria-label="빛 목록">
+  <div class="head"><button class="back" id="lBack" aria-label="지도로 돌아가기">←</button><h2>빛 목록</h2></div>
+  <div class="seg" style="align-self:flex-start"><button class="btn on" id="lAll" aria-pressed="true">전체</button><button class="btn" id="lLinked" aria-pressed="false">이어진 빛</button><button class="btn" id="lAdm" aria-pressed="false">나를 고른 빛</button></div>
+  <div id="secLinked" class="col">
+    <p class="sec" id="linkedHead">이어진 빛</p>
+    <div id="linkedList" class="col"></div>
+    <p id="noLinked" class="empty2">아직 이어진 빛이 없어요. 지도에서 마음 가는 빛의 스위치를 켜 보세요. 서로 고르면 여기에 나타나요.</p>
+  </div>
+  <div id="secAdm" class="col">
+    <p class="sec" id="admHead">나를 고른 빛</p>
+    <p class="lbl" id="admHint">옆으로 밀면 거절 · 누르면 지도에서 보기</p>
+    <div id="adm" class="col"></div>
+    <p id="noAdm" class="empty2">지금 나를 고른 빛이 없어요.</p>
+  </div>
 </section>
 
 <section id="friends" class="screen" aria-label="친구">

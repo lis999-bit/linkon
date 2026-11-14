@@ -176,7 +176,7 @@ function sweepPicks(){if(!S.me)return;const u={};let n=0;
 setInterval(sweepPicks,20000);
 let pcTimer=null;
 function onPeopleChanged(){clearTimeout(pcTimer);pcTimer=setTimeout(()=>{syncDmSubs();checkNotices();refreshOpen();},120);}
-function refreshOpen(){if($('chats').classList.contains('on'))renderList();if($('friends').classList.contains('on')&&!S.armed)renderFriends();if($('chat').classList.contains('on'))updChatHead();if($('gchat').classList.contains('on')&&!S.armed)renderGPanels();if(S.sel)renderSheet();}
+function refreshOpen(){if($('chats').classList.contains('on'))renderList();if($('lightsScr').classList.contains('on'))renderLights();if($('friends').classList.contains('on')&&!S.armed)renderFriends();if($('chat').classList.contains('on'))updChatHead();if($('gchat').classList.contains('on')&&!S.armed)renderGPanels();if(S.sel)renderSheet();}
 function checkNotices(){if(!S.ready){S.likedBy.forEach(k=>S.admSeen.add(k));Object.keys(S.L).forEach(k=>{if(isFriend(k))S.onlineSeen.add(k);});return;}
   S.likedBy.forEach(k=>{if(!S.admSeen.has(k)&&isAdmirer(k)){S.admSeen.add(k);notifyAct(k,nickOf(k)+'님이 당신의 빛을 골랐어요','보기',()=>focusLight(k));}});
   [...S.admSeen].forEach(k=>{if(!S.likedBy.has(k)&&k[0]!=='s')S.admSeen.delete(k);});
@@ -243,7 +243,7 @@ function frame(now){requestAnimationFrame(frame);if(!$('room').classList.contain
   if(!frame._t||now-frame._t>500){frame._t=now;
     $('count').textContent=(os.length+1).toLocaleString('ko-KR')+'개';$('empty').style.display=os.length?'none':'block';
     const rooms=oneRooms().length+Object.keys(S.groups).length;const adms=os.filter(o=>isAdmirer(o.key)).length;
-    $('toChats').textContent='대화방 '+rooms+(adms?' · 나를 고른 빛 '+adms:'')+(totalUnread()?' · 새 메시지':'');
+    $('toChats').textContent='대화방 '+rooms+(totalUnread()?' · 새 메시지':'');$('toLights').textContent='빛 '+links.length+(adms?' · +'+adms:'');
     const afs=allFriends();const onF=afs.filter(k=>online(k)).length;$('toFriends').textContent=(afs.length?'친구 '+onF+'/'+afs.length:'친구')+(S.inReq.size?' · 신청 '+S.inReq.size:'');}
 }
 requestAnimationFrame(frame);
@@ -308,7 +308,7 @@ $('photoIn').onchange=()=>{const f=$('photoIn').files&&$('photoIn').files[0];if(
 $('photoDel').onclick=()=>{db.ref('photos/'+S.me).remove().then(()=>{S.photo=null;paintMe();}).catch(()=>{});};
 
 /* ---------- 1:1 대화 ---------- */
-function oneRooms(){const ks=new Set();others().forEach(o=>{if(isLinked(o.key)&&!isFriend(o.key))ks.add(o.key);});Object.keys(S.dms).forEach(k=>{if((isFriend(k)||isLinked(k))&&(S.dms[k]||[]).length)ks.add(k);});
+function oneRooms(){const ks=new Set();Object.keys(S.dms).forEach(k=>{if((isFriend(k)||isLinked(k))&&(S.dms[k]||[]).length)ks.add(k);});
   return [...ks].sort((a,b)=>(unreadOf(b)-unreadOf(a))||((lastAt(b))-(lastAt(a))));}
 function lastAt(k){const m=S.dms[k];return m&&m.length?m[m.length-1].at||0:0;}
 function unreadOf(k){if(k[0]==='s'){return (S.dms[k]||[]).filter(m=>!m.me&&!m.read).length;}const r=S.read[k]||0;return (S.dms[k]||[]).filter(m=>m.from!==S.me&&(m.at||0)>r).length;}
@@ -320,7 +320,7 @@ function syncDmSubs(){const want=new Set();S.friends.forEach(k=>want.add(k));Obj
       refreshOpenLists();};
     ref.on('child_added',fn,()=>{});S.dmSubs[k]=()=>ref.off('child_added',fn);});
   Object.keys(S.dmSubs).forEach(k=>{if(!want.has(k)){S.dmSubs[k]();delete S.dmSubs[k];}});}
-function refreshOpenLists(){clearTimeout(refreshOpenLists._t);refreshOpenLists._t=setTimeout(()=>{if($('chats').classList.contains('on'))renderList();if($('friends').classList.contains('on')&&!S.armed)renderFriends();},150);}
+function refreshOpenLists(){clearTimeout(refreshOpenLists._t);refreshOpenLists._t=setTimeout(()=>{if($('chats').classList.contains('on'))renderList();if($('lightsScr').classList.contains('on'))renderLights();if($('friends').classList.contains('on')&&!S.armed)renderFriends();},150);}
 function markRead(k){if(k[0]==='s'){(S.dms[k]||[]).forEach(m=>m.read=true);if(isFriend(k))saveSampleFriends();return;}const t=lastAt(k);if(t&&(S.read[k]||0)<t){S.read[k]=t;saveSetting('read/'+k,t);}}
 async function openChat(k){if(!(isFriend(k)||isLinked(k))){toast('대화방이 닫혔어요');return;}S.chatWith=k;S.dms[k]=S.dms[k]||[];
   $('err').style.display='none';$('big').classList.remove('on');updChatHead();renderMsgs();show('chat');markRead(k);loadPhoto(k);}
@@ -348,7 +348,7 @@ $('compose').onsubmit=async e=>{e.preventDefault();const k=S.chatWith;const t=$(
   if(k[0]==='s'){S.dms[k].push({me:true,text:t,at:Date.now(),read:true});saveSampleFriends();$('msgIn').value='';renderMsgs();setTimeout(()=>{if(!S.dms[k])return;S.dms[k].push({me:false,text:REPLIES[Math.floor(Math.random()*REPLIES.length)],at:Date.now()});saveSampleFriends();if(S.chatWith===k&&$('chat').classList.contains('on')){renderMsgs();markRead(k);}},1200+Math.random()*1800);return;}
   if(!isFriend(k)&&!isLinked(k))return err('빛이 끊어져서 지금은 보낼 수 없어요');
   try{await db.ref('dm/'+chatId(S.me,k)).push({from:S.me,text:t.slice(0,500),at:TS});$('msgIn').value='';}catch(x){err('보내지 못했어요. 다시 시도해 주세요');}};
-$('chBack').onclick=()=>{S.chatWith=null;if(S.chatFrom==='friends'){renderFriends();show('friends');}else{renderList();show('chats');}};
+$('chBack').onclick=()=>{S.chatWith=null;if(S.chatFrom==='friends'){renderFriends();show('friends');}else if(S.chatFrom==='lights'){renderLights();show('lightsScr');}else{renderList();show('chats');}};
 
 /* ---------- 대화방 목록 ---------- */
 $('toChats').onclick=()=>{S.chatFrom='chats';S.sel=null;$('sheet').classList.remove('on');$('meSheet').classList.remove('on');renderList();show('chats');};
@@ -362,15 +362,23 @@ function renderList(){setTab(S.ctab);renderGroups();
     const av=el('span','av');const d=el('span');d.style.cssText=dotStyle(COL[p.g],14,!o);const st=el('span','st '+(o?'on':'off'));av.append(d,st);
     const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1';const t=el('span','t',nickOf(k));t.append(el('span','tag'+(isFriend(k)?' fr':''),isFriend(k)?'친구':'이어진 빛'));
     const ms=S.dms[k]||[];const last=ms[ms.length-1];const s2=el('span','s',last?((last.me?'나: ':'')+last.text):(o?desc(o):'오프라인'));s2.style.cssText='white-space:nowrap;overflow:hidden;text-overflow:ellipsis';w.append(t,s2);b.append(av,w);
-    const n=unreadOf(k);if(n)b.append(el('span','badge',String(n)));b.onclick=()=>{S.chatFrom='chats';openChat(k);};L.append(b);});
+    const n=unreadOf(k);if(n)b.append(el('span','badge',String(n)));b.onclick=()=>{S.chatFrom='chats';openChat(k);};L.append(b);});}
+S.ltab='all';
+function setLTab(t){S.ltab=t;[['lAll','all'],['lLinked','linked'],['lAdm','adm']].forEach(([id,v])=>{$(id).classList.toggle('on',t===v);$(id).setAttribute('aria-pressed',t===v);});$('secLinked').style.display=(t==='all'||t==='linked')?'flex':'none';$('secAdm').style.display=(t==='all'||t==='adm')?'flex':'none';}
+$('lAll').onclick=()=>setLTab('all');$('lLinked').onclick=()=>setLTab('linked');$('lAdm').onclick=()=>setLTab('adm');
+function renderLights(){setLTab(S.ltab);const L=$('linkedList');L.textContent='';const ls=others().filter(o=>isLinked(o.key));secHead('linkedHead','이어진 빛',ls.length);$('noLinked').style.display=ls.length?'none':'block';
+  ls.forEach(o=>{const b=el('button','item');b.type='button';const d=el('span');d.style.cssText=dotStyle(COL[o.g],14);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1';const t=el('span','t',label(o));if(isFriend(o.key))t.append(el('span','tag fr','친구'));w.append(t,el('span','s',desc(o)));b.append(d,w);
+    const n=unreadOf(o.key);if(n)b.append(el('span','badge',String(n)));b.onclick=()=>{S.chatFrom='lights';openChat(o.key);};L.append(b);});
   renderAdm();}
-function renderAdm(){const A=$('adm');A.textContent='';const adms=others().filter(o=>isAdmirer(o.key));$('admHead').style.display=adms.length?'block':'none';
+function showLights(){S.sel=null;$('sheet').classList.remove('on');$('meSheet').classList.remove('on');renderLights();show('lightsScr');}
+$('toLights').onclick=showLights;$('lBack').onclick=()=>show('room');
+function renderAdm(){const A=$('adm');A.textContent='';const adms=others().filter(o=>isAdmirer(o.key));secHead('admHead','나를 고른 빛',adms.length);$('noAdm').style.display=adms.length?'none':'block';$('admHint').style.display=adms.length?'block':'none';
   adms.forEach(o=>{const b=el('button','item swipe');b.type='button';const d=el('span');d.style.cssText=dotStyle(COL[o.g],14);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px';w.append(el('span','t',label(o)),el('span','s',desc(o)+' · 나를 골랐어요'));b.append(d,w);attachSwipe(b,()=>rejectAdmirer(o.key),()=>focusLight(o.key));A.append(b);});}
 function rejectAdmirer(k){if(k[0]==='s'){const b=BOTS.find(x=>x.key===k);if(b)b.picksMe=false;}else db.ref('likes/'+S.me+'/'+k).remove().catch(()=>{});toast(nickOf(k)+'님의 빛을 거절했어요');}
 function attachSwipe(e,onSwipe,onTap){let sx=0,sy=0,dx=0,on=false,moved=false,id=null;
   e.addEventListener('pointerdown',ev=>{sx=ev.clientX;sy=ev.clientY;dx=0;on=true;moved=false;id=ev.pointerId;});
   e.addEventListener('pointermove',ev=>{if(!on||ev.pointerId!==id)return;const mx=ev.clientX-sx,my=ev.clientY-sy;if(!moved){if(Math.abs(mx)>10&&Math.abs(mx)>Math.abs(my)){moved=true;e.classList.add('drag');try{e.setPointerCapture(id);}catch(_){}}else if(Math.abs(my)>10){on=false;return;}else return;}dx=mx;e.style.transform='translateX('+dx+'px)';e.style.opacity=String(Math.max(0.15,1-Math.abs(dx)/260));});
-  const end=()=>{if(!on)return;on=false;e.classList.remove('drag');if(moved&&Math.abs(dx)>110){e.style.transform='translateX('+(dx>0?1:-1)*480+'px)';e.style.opacity='0';onSwipe();setTimeout(()=>{e.remove();renderList();},300);}else{e.style.transform='';e.style.opacity='';}};
+  const end=()=>{if(!on)return;on=false;e.classList.remove('drag');if(moved&&Math.abs(dx)>110){e.style.transform='translateX('+(dx>0?1:-1)*480+'px)';e.style.opacity='0';onSwipe();setTimeout(()=>{e.remove();renderLights();},300);}else{e.style.transform='';e.style.opacity='';}};
   e.addEventListener('pointerup',end);e.addEventListener('pointercancel',end);e.addEventListener('click',ev=>{if(moved){ev.preventDefault();moved=false;return;}onTap();});}
 
 /* ---------- 친구 ---------- */
