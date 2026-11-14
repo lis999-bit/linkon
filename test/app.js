@@ -7,7 +7,7 @@ const $=id=>document.getElementById(id);
 const el=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;};
 
 /* ---------- 기본 데이터 ---------- */
-const CITIES=[['서울',126.98,37.57,30],['인천',126.7,37.46,6],['수원·경기남부',127.0,37.27,7],['고양·경기북부',126.83,37.66,4],['성남·분당',127.12,37.38,4],['춘천',127.73,37.88,1],['원주',127.92,37.34,1],['강릉',128.9,37.75,1],['청주',127.49,36.64,2],['천안',127.15,36.81,2],['대전',127.38,36.35,4],['세종',127.29,36.48,1.2],['전주',127.15,35.82,2],['광주',126.85,35.16,4],['목포',126.39,34.81,1],['여수',127.66,34.76,1],['대구',128.6,35.87,6],['안동',128.73,36.57,0.8],['포항',129.34,36.02,1.5],['경주',129.21,35.86,0.8],['울산',129.31,35.54,3],['창원',128.68,35.23,3],['부산',129.07,35.18,8],['제주',126.53,33.5,1.5]];
+const CITIES=[['서울',126.98,37.57,30],['인천',126.7,37.46,6],['수원·경기남부',127.0,37.27,7],['고양·경기북부',126.83,37.66,4],['성남·분당',127.12,37.38,4],['춘천',127.73,37.88,1],['원주',127.92,37.34,1],['강릉',128.9,37.75,1],['청주',127.49,36.64,2],['천안',127.15,36.81,2],['대전',127.38,36.35,4],['세종',127.29,36.48,1.2],['전주',127.15,35.82,2],['광주',126.85,35.16,4],['목포',126.39,34.81,1],['여수',127.66,34.76,1],['대구',128.6,35.87,6],['안동',128.73,36.57,0.8],['포항',129.34,36.02,1.5],['경주',129.21,35.86,0.8],['울산',129.31,35.54,3],['창원',128.68,35.23,3],['부산',129.07,35.18,8],['제주',126.53,33.5,1.5],['순천',127.49,34.95,0.8],['광양',127.7,34.94,0.5],['김해',128.89,35.23,1],['구미',128.34,36.12,0.8],['진주',128.11,35.18,0.7],['군산',126.74,35.97,0.6],['익산',126.96,35.95,0.6],['평택',127.11,36.99,1],['충주',127.93,36.99,0.4],['제천',128.19,37.13,0.3],['거제',128.62,34.88,0.5],['통영',128.43,34.85,0.3],['속초',128.59,38.21,0.2],['용인',127.18,37.24,2],['화성',126.83,37.2,1.5],['안산',126.83,37.32,1.2],['파주',126.78,37.76,0.8],['의정부',127.03,37.74,0.8],['남양주',127.22,37.64,1]];
 const POLY=[[126.1,37.72],[126.6,37.78],[127.1,38.28],[128.35,38.6],[128.62,38.2],[129.0,37.65],[129.38,36.95],[129.45,36.05],[129.33,35.45],[129.1,35.1],[128.6,34.88],[127.8,34.68],[127.3,34.48],[126.6,34.3],[126.3,34.6],[126.42,35.05],[126.5,35.6],[126.7,36.0],[126.5,36.4],[126.15,36.8],[126.7,37.0],[126.6,37.42]];
 const COL={f:'#FFB86B',m:'#8FB8FF'},GL={f:'여성의 빛',m:'남성의 빛'};
 const THIS_YEAR=new Date().getFullYear(),MAX_BIRTH=THIS_YEAR-19;
@@ -19,7 +19,7 @@ function cleanName(s){return String(s||'').replace(/[\u0000-\u001f\u007f-\u009f�
 function realAge(by){const a=THIS_YEAR-by;return (a>=19&&a<=110)?a:null;}
 function label(o){return o?(o.age!=null?o.nick+' ('+o.age+')':o.nick):'알 수 없는 빛';}
 function nearestCity(lon,lat){let b=CITIES[0],d=1e9;for(const c of CITIES){const e=(c[1]-lon)**2+(c[2]-lat)**2;if(e<d){d=e;b=c;}}return b[0];}
-function desc(o){return GL[o.g]+' · '+nearestCity(o.lon,o.lat)+' 근처'+(o.sample?' · 샘플':'');}
+function desc(o){return GL[o.g]+' · '+(o.place||nearestCity(o.lon,o.lat))+' 근처'+(o.sample?' · 샘플':'');}
 function hash(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
 function hexUtf8(s){return Array.from(new TextEncoder().encode(s)).map(b=>b.toString(16).padStart(2,'0')).join('');}
 function idEmail(nick){return 'u'+hexUtf8(cleanNick(nick).toLowerCase())+'@linkon.app';}
@@ -45,7 +45,7 @@ let offDisc=null,watchId=null;
 
 /* ---------- 로그인 화면 ---------- */
 const bSel=$('aBirth');for(let y=MAX_BIRTH;y>=THIS_YEAR-90;y--){const o=el('option',null,y+'년');o.value=y;bSel.appendChild(o);}
-const rSel=$('region');CITIES.forEach((c,i)=>{const o=el('option',null,c[0]);o.value=i;rSel.appendChild(o);});
+
 let mode='new',gPick=null;
 function setMode(m){mode=m;$('tabNew').classList.toggle('on',m==='new');$('tabLogin').classList.toggle('on',m==='login');$('tabNew').setAttribute('aria-pressed',m==='new');$('tabLogin').setAttribute('aria-pressed',m==='login');$('newOnly').style.display=m==='new'?'flex':'none';$('aGo').textContent=m==='new'?'아이디 만들고 들어가기':'로그인';$('aPw').autocomplete=m==='new'?'new-password':'current-password';$('aErr').style.display='none';}
 $('tabNew').onclick=()=>setMode('new');$('tabLogin').onclick=()=>setMode('login');
@@ -90,27 +90,38 @@ function fuzz(lat,lon){let d=1e9;for(const c of CITIES){const km=Math.hypot((c[1
   const jx=((h%1000)/1000-0.5)*cell*0.6,jy=(((h>>>10)%1000)/1000-0.5)*cell*0.6;
   return {lat:+(Math.round(lat/cell)*cell+jy).toFixed(4),lon:+(Math.round(lon/cell)*cell+jx).toFixed(4)};}
 function getGps(){return new Promise(res=>{if(!navigator.geolocation)return res(null);navigator.geolocation.getCurrentPosition(p=>res(p.coords),()=>res(null),{enableHighAccuracy:false,timeout:12000,maximumAge:120000});});}
-function regionLoc(i){const c=CITIES[i];return fuzz(c[2],c[1]);}
-async function publishLight(){if(!S.lit||!S.loc)return;const d={lat:S.loc.lat,lon:S.loc.lon,g:S.prof.g,nick:S.prof.nick,age:S.prof.age,noReq:!!S.noReq,t:TS};await db.ref('lights/'+S.me).set(d);}
+function cleanPlace(x){return String(x||'').replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁯﻿]/g,'').trim().slice(0,20);}
+const placeCache={};
+async function placeName(lat,lon){const key=lat.toFixed(2)+','+lon.toFixed(2);if(placeCache[key])return placeCache[key];
+  try{const r=await fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+lat+'&longitude='+lon+'&localityLanguage=ko');if(!r.ok)throw 0;const j=await r.json();
+    const adm=((j.localityInfo&&j.localityInfo.administrative)||[]).filter(a=>a&&a.name&&/[가-힣]/.test(a.name));
+    let name='';const lv=n=>adm.filter(a=>a.adminLevel===n).map(a=>a.name)[0];
+    const si=lv(6)||lv(5)||j.city||'';const top=lv(4)||j.principalSubdivision||'';
+    if(/(특별시|광역시)$/.test(top)){const gu=lv(6)||j.locality||'';name=top.replace(/(특별시|광역시)$/,'')+(gu&&gu!==top?' '+gu:'');}
+    else name=si||j.locality||top;
+    name=cleanPlace(name);if(name){placeCache[key]=name;return name;}}catch(e){}
+  return nearestCity(lon,lat);}
+function placeOf(o){return o.place||nearestCity(o.lon,o.lat);}
+async function refreshPlace(){if(!S.loc)return;const n=await placeName(S.loc.lat,S.loc.lon);if(n!==S.place){S.place=n;if(S.lit)publishLight().catch(()=>{});if($('meSheet').classList.contains('on'))paintLoc();}}
+async function publishLight(){if(!S.lit||!S.loc)return;const d={lat:S.loc.lat,lon:S.loc.lon,place:S.place||null,g:S.prof.g,nick:S.prof.nick,age:S.prof.age,noReq:!!S.noReq,t:TS};await db.ref('lights/'+S.me).set(d);}
 
 $('switch').onclick=async()=>{if(S.busy)return;S.busy=true;$('offHint').style.color='';
-  let loc=null;
-  if($('regionBox').style.display==='none'){$('offHint').textContent='위치를 확인하는 중…';const c=await getGps();if(c){loc=fuzz(c.latitude,c.longitude);S.locBy='gps';}
-    else{$('regionBox').style.display='flex';if(S.region!=null)rSel.value=S.region;$('offHint').textContent='위치 권한이 없거나 위치를 찾지 못했어요. 지역을 고르고 다시 스위치를 올려 주세요';S.busy=false;return;}}
-  else{S.region=+rSel.value;saveSetting('region',S.region);loc=regionLoc(S.region);S.locBy='region';}
-  S.loc=loc;S.lit=true;$('switch').classList.add('flip');
+  $('offHint').textContent='위치를 확인하는 중…';const c=await getGps();
+  if(!c){$('offHint').style.color='#FF9A8A';$('offHint').textContent='위치를 받지 못했어요. 링크온은 GPS 위치로만 빛을 켜요. 주소창 왼쪽 자물쇠(또는 ⋮ → 설정 → 사이트 설정 → 위치)에서 위치를 허용하고 다시 스위치를 올려 주세요';S.busy=false;return;}
+  S.loc=fuzz(c.latitude,c.longitude);S.locBy='gps';S.place=nearestCity(S.loc.lon,S.loc.lat);S.lit=true;$('switch').classList.add('flip');
   try{await publishLight();offDisc=db.ref('lights/'+S.me).onDisconnect();await offDisc.remove();}catch(e){S.lit=false;$('switch').classList.remove('flip');$('offHint').textContent='빛을 켜지 못했어요. 인터넷 연결을 확인해 주세요';S.busy=false;return;}
-  if($('regionBox').style.display==='none'&&navigator.geolocation){watchId=navigator.geolocation.watchPosition(p=>{const n=fuzz(p.coords.latitude,p.coords.longitude);if(n.lat!==S.loc.lat||n.lon!==S.loc.lon){S.loc=n;publishLight().catch(()=>{});if($('meSheet').classList.contains('on'))paintLoc();}},()=>{},{enableHighAccuracy:false,maximumAge:300000,timeout:30000});}
+  refreshPlace();
+  if(navigator.geolocation){watchId=navigator.geolocation.watchPosition(p=>{const n=fuzz(p.coords.latitude,p.coords.longitude);if(n.lat!==S.loc.lat||n.lon!==S.loc.lon){S.loc=n;publishLight().catch(()=>{});refreshPlace();if($('meSheet').classList.contains('on'))paintLoc();}},()=>{},{enableHighAccuracy:false,maximumAge:300000,timeout:30000});}
   setTimeout(()=>{show('room');$('switch').classList.remove('flip');S.busy=false;},450);};
 async function lightOff(){S.lit=false;if(watchId!=null){try{navigator.geolocation.clearWatch(watchId);}catch(e){}watchId=null;}if(S.me){try{if(offDisc)await offDisc.cancel();await db.ref('lights/'+S.me).remove();}catch(e){}}BOTS.forEach(b=>{b.picksMe=false;b.frMe=false;});S.botPicks.clear();}
-$('lightOff').onclick=async()=>{await lightOff();$('sheet').classList.remove('on');$('meSheet').classList.remove('on');S.sel=null;$('regionBox').style.display='none';$('offHint').textContent='스위치를 올려 주세요';show('off');};
+$('lightOff').onclick=async()=>{await lightOff();$('sheet').classList.remove('on');$('meSheet').classList.remove('on');S.sel=null;$('offHint').textContent='스위치를 올려 주세요';show('off');};
 window.addEventListener('beforeunload',()=>{if(S.lit&&S.me)db.ref('lights/'+S.me).remove();});
 
 /* ---------- 실시간 구독 ---------- */
 function sub(ref,ev,fn){ref.on(ev,fn,()=>{});S.subs.push(()=>ref.off(ev,fn));}
 function loadProfile(uid){if(S.P[uid]||uid[0]==='s'||S['pl'+uid])return;S['pl'+uid]=1;db.ref('profiles/'+uid).get().then(s=>{const p=s.val();if(p){S.P[uid]={nick:cleanNick(p.nick),g:p.g==='m'?'m':'f',birth:p.birth,age:realAge(p.birth)};refreshOpen();}}).catch(()=>{delete S['pl'+uid];});}
 function startSubs(){const me=S.me;
-  sub(db.ref('lights'),'value',s=>{const v=s.val()||{};const L={};Object.keys(v).forEach(k=>{if(k===me)return;const x=v[k];if(!x||typeof x.lat!=='number'||typeof x.lon!=='number')return;L[k]={key:k,g:x.g==='m'?'m':'f',nick:cleanNick(x.nick)||'빛',age:typeof x.age==='number'?x.age:null,lat:x.lat,lon:x.lon,noReq:x.noReq===true};S.P[k]=S.P[k]||{nick:L[k].nick,g:L[k].g,age:L[k].age};});S.L=L;onPeopleChanged();});
+  sub(db.ref('lights'),'value',s=>{const v=s.val()||{};const L={};Object.keys(v).forEach(k=>{if(k===me)return;const x=v[k];if(!x||typeof x.lat!=='number'||typeof x.lon!=='number')return;L[k]={key:k,g:x.g==='m'?'m':'f',nick:cleanNick(x.nick)||'빛',age:typeof x.age==='number'?x.age:null,lat:x.lat,lon:x.lon,noReq:x.noReq===true,place:cleanPlace(x.place)||null};S.P[k]=S.P[k]||{nick:L[k].nick,g:L[k].g,age:L[k].age};});S.L=L;onPeopleChanged();});
   sub(db.ref('mypicks/'+me),'value',s=>{S.picks=new Set(Object.keys(s.val()||{}));onPeopleChanged();});
   sub(db.ref('likes/'+me),'value',s=>{S.likedBy=new Set(Object.keys(s.val()||{}));onPeopleChanged();});
   sub(db.ref('friends/'+me),'value',s=>{const nw=new Set(Object.keys(s.val()||{}));nw.forEach(k=>{loadProfile(k);if(!S.friends.has(k)&&S.outReq.has(k)){db.ref('settings/'+me+'/myreq/'+k).remove();if(S.ready)notifyAct(k,nickOf(k)+'님이 친구 신청을 수락했어요','대화',()=>openChat(k));}});S.friends=nw;onPeopleChanged();});
@@ -257,7 +268,7 @@ $('sTalk').onclick=()=>{if(S.sel)openChat(S.sel);};
 /* ---------- 내 설정 ---------- */
 function paintMe(){$('meAv').style.backgroundImage=S.photo?'url('+S.photo+')':'';const p=$('pick');p.style.backgroundImage=S.photo?'url('+S.photo+')':'';p.classList.toggle('has',!!S.photo);$('pickTxt').textContent=S.photo?'':'사진';$('photoDel').style.display=S.photo?'':'none';$('meName').textContent=label(S.prof)+' · 내 설정';}
 function paintReq(){$('reqToggle').checked=!S.noReq;$('reqSub').textContent=S.noReq?'지금은 아무도 나에게 빛 요청을 보낼 수 없어요':'다른 빛이 나를 고르면 알림이 와요';$('meLbl').textContent=S.noReq?'요청 차단 중':'내 설정';}
-function paintLoc(){if(!S.loc){$('meLoc').textContent='위치 정보 없음';$('meLocSub').textContent='';return;}$('meLoc').textContent=nearestCity(S.loc.lon,S.loc.lat)+' 근처';$('meLocSub').textContent=(S.locBy==='gps'?'GPS로 받은 위치':'직접 고른 지역')+' · 다른 사람에게도 이 정도로만 보여요';}
+function paintLoc(){if(!S.loc){$('meLoc').textContent='위치 정보 없음';$('meLocSub').textContent='';return;}$('meLoc').textContent=(S.place||nearestCity(S.loc.lon,S.loc.lat))+' 근처';$('meLocSub').textContent='GPS로 받은 위치 · 다른 사람에게도 이 정도로만 보여요';}
 function openMe(){S.sel=null;$('sheet').classList.remove('on');paintLoc();$('meSheet').classList.add('on');}
 $('meBtn').onclick=()=>{$('meSheet').classList.contains('on')?$('meSheet').classList.remove('on'):openMe();};$('meClose').onclick=()=>$('meSheet').classList.remove('on');
 $('reqToggle').onchange=()=>{S.noReq=!$('reqToggle').checked;saveSetting('noReq',S.noReq);paintReq();publishLight().catch(()=>{});if(S.noReq)$('notice').classList.remove('on');toast(S.noReq?'빛 요청 받기를 껐어요':'빛 요청 받기를 켰어요');};
@@ -290,7 +301,7 @@ function loadPhoto(k){$('chAv').style.display='none';$('chDot').style.display=''
 $('chAv').onclick=()=>{const v=S.photos[S.chatWith];if(!v)return;$('bigImg').src=v;$('big').classList.add('on');};$('big').onclick=()=>$('big').classList.remove('on');
 function updChatHead(){const k=S.chatWith;if(!k)return;const o=findO(k);const p=o||S.P[k]||{g:'f',nick:'빛'};
   $('chDot').style.cssText=dotStyle(COL[p.g],14,!o);if(S.photos[k]&&$('chAv').style.display!=='none')$('chDot').style.display='none';
-  $('chTitle').textContent=nickOf(k);const fr=isFriend(k),lk=isLinked(k);$('chSub').textContent=(o?'접속 중 · ':'오프라인 · ')+(fr?'친구':'이어진 빛')+(o?' · '+nearestCity(o.lon,o.lat)+' 근처':'');
+  $('chTitle').textContent=nickOf(k);const fr=isFriend(k),lk=isLinked(k);$('chSub').textContent=(o?'접속 중 · ':'오프라인 · ')+(fr?'친구':'이어진 빛')+(o?' · '+(o.place||nearestCity(o.lon,o.lat))+' 근처':'');
   const b=$('chFr');
   const theyReq=k[0]!=='s'&&S.inReq.has(k);b.style.display=(fr||isOut(k)||isNo(k)||lk)?'':'none';
   b.textContent=fr?'친구예요':isNo(k)?'신청 거절됨':isOut(k)?'수락 기다리는 중':theyReq?'친구 수락':'친구 신청';b.style.opacity=(fr||isOut(k)||isNo(k))?'0.6':'1';}
@@ -350,7 +361,7 @@ function renderFriends(){
   outs.forEach(k=>{const {row}=personRow(k,()=>'수락 기다리는 중');row.append(sbtn('취소',null,()=>cancelReq(k)));O.append(row);});
   const F=$('frList');F.textContent='';const fs=allFriends().sort((a,b)=>(online(b)?1:0)-(online(a)?1:0));const on=fs.filter(k=>online(k)).length;
   $('frHead').style.display=fs.length?'block':'none';$('frEmpty').style.display=(fs.length||S.inReq.size||outs.length)?'none':'block';$('frSum').textContent=fs.length?'접속 중 '+on+'명 · 전체 '+fs.length+'명':'';
-  fs.forEach(k=>{const o=S.L[k];const {row,w}=personRow(k,o=>o?'접속 중 · '+nearestCity(o.lon,o.lat)+' 근처 · 눌러서 대화':'오프라인 · 눌러서 대화');
+  fs.forEach(k=>{const o=S.L[k];const {row,w}=personRow(k,o=>o?'접속 중 · '+(o.place||nearestCity(o.lon,o.lat))+' 근처 · 눌러서 대화':'오프라인 · 눌러서 대화');
     w.style.cursor='pointer';w.setAttribute('role','button');w.tabIndex=0;w.onclick=()=>{S.chatFrom='friends';openChat(k);};
     const n=unreadOf(k);if(n)row.append(el('span','badge',String(n)));
     const cancel=sbtn('취소',null,()=>{});cancel.style.display='none';const del=sbtn('삭제',null,()=>{});
