@@ -95,12 +95,12 @@ async function publishLight(){if(!S.lit||!S.loc)return;const d={lat:S.loc.lat,lo
 
 $('switch').onclick=async()=>{if(S.busy)return;S.busy=true;$('offHint').style.color='';
   let loc=null;
-  if($('regionBox').style.display==='none'){$('offHint').textContent='위치를 확인하는 중…';const c=await getGps();if(c)loc=fuzz(c.latitude,c.longitude);
+  if($('regionBox').style.display==='none'){$('offHint').textContent='위치를 확인하는 중…';const c=await getGps();if(c){loc=fuzz(c.latitude,c.longitude);S.locBy='gps';}
     else{$('regionBox').style.display='flex';if(S.region!=null)rSel.value=S.region;$('offHint').textContent='위치 권한이 없거나 위치를 찾지 못했어요. 지역을 고르고 다시 스위치를 올려 주세요';S.busy=false;return;}}
-  else{S.region=+rSel.value;saveSetting('region',S.region);loc=regionLoc(S.region);}
+  else{S.region=+rSel.value;saveSetting('region',S.region);loc=regionLoc(S.region);S.locBy='region';}
   S.loc=loc;S.lit=true;$('switch').classList.add('flip');
   try{await publishLight();offDisc=db.ref('lights/'+S.me).onDisconnect();await offDisc.remove();}catch(e){S.lit=false;$('switch').classList.remove('flip');$('offHint').textContent='빛을 켜지 못했어요. 인터넷 연결을 확인해 주세요';S.busy=false;return;}
-  if($('regionBox').style.display==='none'&&navigator.geolocation){watchId=navigator.geolocation.watchPosition(p=>{const n=fuzz(p.coords.latitude,p.coords.longitude);if(n.lat!==S.loc.lat||n.lon!==S.loc.lon){S.loc=n;publishLight().catch(()=>{});}},()=>{},{enableHighAccuracy:false,maximumAge:300000,timeout:30000});}
+  if($('regionBox').style.display==='none'&&navigator.geolocation){watchId=navigator.geolocation.watchPosition(p=>{const n=fuzz(p.coords.latitude,p.coords.longitude);if(n.lat!==S.loc.lat||n.lon!==S.loc.lon){S.loc=n;publishLight().catch(()=>{});if($('meSheet').classList.contains('on'))paintLoc();}},()=>{},{enableHighAccuracy:false,maximumAge:300000,timeout:30000});}
   setTimeout(()=>{show('room');$('switch').classList.remove('flip');S.busy=false;},450);};
 async function lightOff(){S.lit=false;if(watchId!=null){try{navigator.geolocation.clearWatch(watchId);}catch(e){}watchId=null;}if(S.me){try{if(offDisc)await offDisc.cancel();await db.ref('lights/'+S.me).remove();}catch(e){}}BOTS.forEach(b=>{b.picksMe=false;b.frMe=false;});S.botPicks.clear();}
 $('lightOff').onclick=async()=>{await lightOff();$('sheet').classList.remove('on');$('meSheet').classList.remove('on');S.sel=null;$('regionBox').style.display='none';$('offHint').textContent='스위치를 올려 주세요';show('off');};
@@ -257,7 +257,8 @@ $('sTalk').onclick=()=>{if(S.sel)openChat(S.sel);};
 /* ---------- 내 설정 ---------- */
 function paintMe(){$('meAv').style.backgroundImage=S.photo?'url('+S.photo+')':'';const p=$('pick');p.style.backgroundImage=S.photo?'url('+S.photo+')':'';p.classList.toggle('has',!!S.photo);$('pickTxt').textContent=S.photo?'':'사진';$('photoDel').style.display=S.photo?'':'none';$('meName').textContent=label(S.prof)+' · 내 설정';}
 function paintReq(){$('reqToggle').checked=!S.noReq;$('reqSub').textContent=S.noReq?'지금은 아무도 나에게 빛 요청을 보낼 수 없어요':'다른 빛이 나를 고르면 알림이 와요';$('meLbl').textContent=S.noReq?'요청 차단 중':'내 설정';}
-function openMe(){S.sel=null;$('sheet').classList.remove('on');$('meSheet').classList.add('on');}
+function paintLoc(){if(!S.loc){$('meLoc').textContent='위치 정보 없음';$('meLocSub').textContent='';return;}$('meLoc').textContent=nearestCity(S.loc.lon,S.loc.lat)+' 근처';$('meLocSub').textContent=(S.locBy==='gps'?'GPS로 받은 위치':'직접 고른 지역')+' · 다른 사람에게도 이 정도로만 보여요';}
+function openMe(){S.sel=null;$('sheet').classList.remove('on');paintLoc();$('meSheet').classList.add('on');}
 $('meBtn').onclick=()=>{$('meSheet').classList.contains('on')?$('meSheet').classList.remove('on'):openMe();};$('meClose').onclick=()=>$('meSheet').classList.remove('on');
 $('reqToggle').onchange=()=>{S.noReq=!$('reqToggle').checked;saveSetting('noReq',S.noReq);paintReq();publishLight().catch(()=>{});if(S.noReq)$('notice').classList.remove('on');toast(S.noReq?'빛 요청 받기를 껐어요':'빛 요청 받기를 켰어요');};
 $('photoIn').onchange=()=>{const f=$('photoIn').files&&$('photoIn').files[0];if(!f)return;const url=URL.createObjectURL(f);const im=new Image();
