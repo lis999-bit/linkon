@@ -79,9 +79,9 @@ auth.onAuthStateChanged(async u=>{
   if(!p){for(let i=0;i<5&&!p;i++){await new Promise(r=>setTimeout(r,600));try{p=(await db.ref('profiles/'+u.uid).get()).val();}catch(e){}}}
   if(!p){await auth.signOut();show('auth');aErr('프로필을 불러오지 못했어요. 다시 로그인해 주세요');return;}
   S.prof={nick:cleanNick(p.nick),g:p.g==='m'?'m':'f',birth:p.birth,age:realAge(p.birth)};S.P[S.me]=S.prof;
-  try{const st=(await db.ref('settings/'+S.me).get()).val()||{};S.noReq=!!st.noReq;S.sample=st.sample!==false;S.read=st.read||{};if(typeof st.region==='number')S.region=st.region;}catch(e){}
+  try{const st=(await db.ref('settings/'+S.me).get()).val()||{};S.noReq=!!st.noReq;S.sample=st.sample!==false;S.read=st.read||{};if(typeof st.radius==='number')S.radius=st.radius;if(typeof st.region==='number')S.region=st.region;}catch(e){}
   try{const ph=(await db.ref('photos/'+S.me).get()).val();S.photo=okImg(ph)?ph:null;}catch(e){}
-  paintMe();paintReq();paintSample();loadSampleFriends();loadSampleGroups();
+  paintMe();paintReq();paintSample();paintRad();loadSampleFriends();loadSampleGroups();
   $('offTitle').textContent=label(S.prof)+'님, 불을 켜 볼까요?';
   startSubs();show('off');hideSplash();
 });
@@ -219,7 +219,8 @@ const seen={},ghosts={};let drawn=[];
 function frame(now){requestAnimationFrame(frame);if(!$('room').classList.contains('on')||!S.loc)return;
   ctx.fillStyle='#07070a';ctx.fillRect(0,0,W,H);
   ctx.strokeStyle='rgba(237,235,228,0.05)';ctx.lineWidth=1;ctx.beginPath();POLY.forEach((p,i)=>{const [x,y]=proj(p[0],p[1]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();ctx.stroke();
-  const os=others();const keys=new Set(os.map(o=>o.key));
+  if(S.radius){const [cx,cy]=proj(S.loc.lon,S.loc.lat);const [,ry]=proj(S.loc.lon,S.loc.lat+S.radius/111);const r=Math.abs(cy-ry);ctx.save();ctx.strokeStyle='rgba(255,246,224,0.22)';ctx.setLineDash([4,6]);ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.stroke();ctx.restore();}
+  const os=others().filter(inRadius);const keys=new Set(os.map(o=>o.key));
   for(const k in seen){if(!keys.has(k)){ghosts[k]={...seen[k].o,t:now};delete seen[k];}}
   os.forEach(o=>{if(!seen[o.key])seen[o.key]={t:now,o};else seen[o.key].o=o;});
   const [mx,my]=proj(S.loc.lon,S.loc.lat);
@@ -267,6 +268,15 @@ $('zIn').onclick=()=>zoomAt(W/2,H/2,Z.s*1.6);$('zOut').onclick=()=>zoomAt(W/2,H/
 function tapAt(x,y){const [mx,my]=proj(S.loc.lon,S.loc.lat);if((mx-x)**2+(my-y)**2<20*20){openMe();return;}$('meSheet').classList.remove('on');
   let best=null,bd=26*26;drawn.forEach(d=>{const dd=(d.x-x)**2+(d.y-y)**2;if(dd<bd){bd=dd;best=d;}});S.sel=best?best.key:null;$('sheet').classList.toggle('on',!!best);if(best)renderSheet();}
 function focusLight(k){const o=findO(k);if(!o)return;show('room');const [x,y]=proj(o.lon,o.lat);if(Z.s<3)zoomAt(x,y,3);const [x2,y2]=proj(o.lon,o.lat);Z.x+=W/2-x2;Z.y+=H*0.4-y2;clampZ();S.sel=k;$('meSheet').classList.remove('on');$('sheet').classList.add('on');renderSheet();}
+S.radius=0;const RADII=[0,5,10,30,50,100,200];
+function distKm(a,b){const R=6371,toR=Math.PI/180;const dLat=(b.lat-a.lat)*toR,dLon=(b.lon-a.lon)*toR;const x=Math.sin(dLat/2)**2+Math.cos(a.lat*toR)*Math.cos(b.lat*toR)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
+function inRadius(o){return !S.radius||!S.loc||distKm(S.loc,o)<=S.radius;}
+function paintRad(){$('radBtn').textContent='반경 · '+(S.radius?S.radius+'km':'전체');const P=$('radPanel');P.textContent='';
+  RADII.forEach(r=>{const c=el('button','chip'+(S.radius===r?' on':''),r?r+'km':'전체');c.type='button';c.onclick=()=>setRadius(r);P.append(c);});}
+function setRadius(r){S.radius=r;saveSetting('radius',r);paintRad();$('radPanel').style.display='none';$('radBtn').setAttribute('aria-expanded','false');
+  if(S.loc){if(!r){Z.s=1;Z.x=0;Z.y=0;}else{const [bx,by]=base(S.loc.lon,S.loc.lat);const [,b2]=base(S.loc.lon,S.loc.lat+r/111);const rp=Math.abs(by-b2)||1;const ns=Math.max(1,Math.min(14,(Math.min(W,H)*0.38)/rp));Z.s=ns;Z.x=W/2-bx*ns;Z.y=H*0.45-by*ns;clampZ();}}
+  toast(r?'내 주변 '+r+'km 안의 빛만 보여요':'모든 빛을 보여요');}
+$('radBtn').onclick=e=>{e.stopPropagation();const P=$('radPanel');const open=P.style.display==='none';paintRad();P.style.display=open?'flex':'none';$('radBtn').setAttribute('aria-expanded',open);};
 function setView(v){S.view=v;const w=$('vsw');w.classList.toggle('mine',v==='mine');w.setAttribute('aria-checked',v==='mine');$('vk').style.transform='';}
 (function(){const w=$('vsw'),k=$('vk');let sx=0,dx=0,on=false,id=null,base=0;const MAX=86;
   w.addEventListener('pointerdown',e=>{e.stopPropagation();on=true;id=e.pointerId;sx=e.clientX;dx=0;base=S.view==='mine'?MAX:0;try{w.setPointerCapture(id);}catch(_){}w.classList.add('drag');});
