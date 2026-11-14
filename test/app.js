@@ -375,7 +375,7 @@ function setTab(t){S.ctab=t;[['tAll','all'],['tGroup','group'],['tOne','one']].f
 $('tAll').onclick=()=>setTab('all');$('tGroup').onclick=()=>setTab('group');$('tOne').onclick=()=>setTab('one');
 function secHead(id,text,n){const h=$(id);h.textContent=text;if(n){h.append(el('span','n',n+'개'));}}
 S.phCache={};
-function getPhoto(k){if(k[0]==='s'||k in S.phCache)return S.phCache[k]||null;S.phCache[k]=null;db.ref('photos/'+k).get().then(sn=>{const v=sn.val();if(okImg(v)){S.phCache[k]=v;S.photos[k]=v;refreshOpenLists();}}).catch(()=>{delete S.phCache[k];});return null;}
+function getPhoto(k){if(k===S.me)return S.photo||null;if(k[0]==='s'||k in S.phCache)return S.phCache[k]||null;S.phCache[k]=null;db.ref('photos/'+k).get().then(sn=>{const v=sn.val();if(okImg(v)){S.phCache[k]=v;S.photos[k]=v;refreshOpenLists();}}).catch(()=>{delete S.phCache[k];});return null;}
 function avatarEl(k,g,sz,dim){const ph=getPhoto(k);const e=el('span');const c=COL[g]||'#fff';
   if(ph)e.style.cssText='display:block;flex:none;width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:center/cover no-repeat url('+ph+');border:1.5px solid '+c+(dim?';opacity:.55':'');
   else e.style.cssText='display:flex;align-items:center;justify-content:center;flex:none;width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:#1A1A1F;border:1.5px solid '+c+'88'+(dim?';opacity:.55':'');
@@ -416,7 +416,7 @@ async function acceptFriend(k){const u={};u['friends/'+S.me+'/'+k]=true;u['frien
 async function declineFriend(k){const u={};u['freq/'+S.me+'/'+k]=null;u['frno/'+k+'/'+S.me]=true;try{await db.ref().update(u);}catch(e){}}
 async function cancelReq(k){if(k[0]==='s'){S.botOut.delete(k);onPeopleChanged();return;}const u={};u['freq/'+k+'/'+S.me]=null;u['settings/'+S.me+'/myreq/'+k]=null;try{await db.ref().update(u);}catch(e){}}
 async function removeFriend(k){if(k[0]==='s'){S.botFriends.delete(k);delete S.dms[k];saveSampleFriends();Object.values(S.groups).forEach(G=>{if(G.sample&&G.members[k]){delete G.members[k];delete G.subs[k];}});saveSampleGroups();toast(nickOf(k)+'님과 친구를 끊었어요');onPeopleChanged();return;}const u={};u['friends/'+S.me+'/'+k]=null;u['friends/'+k+'/'+S.me]=null;try{await db.ref().update(u);toast(nickOf(k)+'님과 친구를 끊었어요');}catch(e){toast('삭제하지 못했어요');}}
-function personRow(k,sub){const o=findO(k);const p=o||S.P[k]||{g:'f'};const row=el('div','item');row.style.cursor='default';const av=el('span','av');const d=el('span');d.style.cssText=dotStyle(COL[p.g],16,!o);av.append(d,el('span','st '+(o?'on':'off')));
+function personRow(k,sub){const o=findO(k);const p=o||S.P[k]||{g:'f'};const row=el('div','item');row.style.cursor='default';const av=el('span','av');const d=avatarEl(k,p.g,40,!o);av.append(d,el('span','st '+(o?'on':'off')));
   const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;flex:1;min-width:0';w.append(el('span','t',nickOf(k)),el('span',o?'on-dot':'off-dot',sub(o)));row.append(av,w);return {row,w};}
 function renderFriends(){
   const I=$('inList');I.textContent='';$('inHead').style.display=S.inReq.size?'block':'none';
@@ -549,7 +549,7 @@ function renderGPanels(){const G=S.groups[S.gChat];if(!G||!G.name)return;const m
       sbtn('거절',null,()=>{const u={};u['groups/'+G.id+'/sug/'+x]=null;u['groups/'+G.id+'/no/'+x]={by:G.sug[x].by,at:TS};db.ref().update(u).catch(()=>{});}));A.append(r);});A.style.display='flex';}else A.style.display='none';
   const P=$('gcPanel');const mode=P.dataset.mode;P.textContent='';if(!mode){P.style.display='none';return;}P.style.display='flex';
   if(mode==='members'){
-    mk.forEach(k=>{const on=k===S.me||online(k);const p=findO(k)||S.P[k]||{g:'f'};const av=el('span','av');const d=el('span');d.style.cssText='display:block;width:12px;height:12px;border-radius:50%;background:'+(k===S.me?'#fff':COL[p.g])+';'+(on?'':'opacity:.35');av.append(d,el('span','st '+(on?'on':'off')));
+    mk.forEach(k=>{const on=k===S.me||online(k);const p=findO(k)||S.P[k]||{g:'f'};const av=el('span','av');const d=avatarEl(k,k===S.me?S.prof.g:p.g,32,!on);av.append(d,el('span','st '+(on?'on':'off')));
       const t=el('span','t',nickOf(k)+(k===S.me?' (나)':''));if(k===G.owner)t.append(el('span','tag ow','방장'));else if(isSub(G,k)){const s2=el('span','tag fr','부방장');t.append(s2);}
       const acts=[];
       if(k!==S.me)acts.push(sbtn('귓말',null,()=>{S.gOpen=null;setAt(k);P.dataset.mode='';renderGPanels();$('gIn').focus();}));
