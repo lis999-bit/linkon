@@ -218,8 +218,16 @@ $('zIn').onclick=()=>zoomAt(W/2,H/2,Z.s*1.6);$('zOut').onclick=()=>zoomAt(W/2,H/
 function tapAt(x,y){const [mx,my]=proj(S.loc.lon,S.loc.lat);if((mx-x)**2+(my-y)**2<20*20){openMe();return;}$('meSheet').classList.remove('on');
   let best=null,bd=26*26;drawn.forEach(d=>{const dd=(d.x-x)**2+(d.y-y)**2;if(dd<bd){bd=dd;best=d;}});S.sel=best?best.key:null;$('sheet').classList.toggle('on',!!best);if(best)renderSheet();}
 function focusLight(k){const o=findO(k);if(!o)return;show('room');const [x,y]=proj(o.lon,o.lat);if(Z.s<3)zoomAt(x,y,3);const [x2,y2]=proj(o.lon,o.lat);Z.x+=W/2-x2;Z.y+=H*0.4-y2;clampZ();S.sel=k;$('meSheet').classList.remove('on');$('sheet').classList.add('on');renderSheet();}
-$('vAll').onclick=()=>setView('all');$('vMine').onclick=()=>setView('mine');
-function setView(v){S.view=v;$('vAll').classList.toggle('on',v==='all');$('vMine').classList.toggle('on',v==='mine');$('vAll').setAttribute('aria-pressed',v==='all');$('vMine').setAttribute('aria-pressed',v==='mine');}
+function setView(v){S.view=v;const w=$('vsw');w.classList.toggle('mine',v==='mine');w.setAttribute('aria-checked',v==='mine');$('vk').style.transform='';}
+(function(){const w=$('vsw'),k=$('vk');let sx=0,dx=0,on=false,id=null,base=0;const MAX=86;
+  w.addEventListener('pointerdown',e=>{e.stopPropagation();on=true;id=e.pointerId;sx=e.clientX;dx=0;base=S.view==='mine'?MAX:0;try{w.setPointerCapture(id);}catch(_){}w.classList.add('drag');});
+  w.addEventListener('pointermove',e=>{if(!on||e.pointerId!==id)return;dx=e.clientX-sx;const x=Math.max(0,Math.min(MAX,base+dx));k.style.transform='translateX('+x+'px)';});
+  const end=e=>{if(!on)return;on=false;w.classList.remove('drag');let v;
+    if(Math.abs(dx)<8){const r=w.getBoundingClientRect();v=(e.clientX-r.left)>r.width/2?'mine':'all';if(v===S.view)v=S.view==='mine'?'all':'mine';}
+    else{const x=Math.max(0,Math.min(MAX,base+dx));v=x>MAX/2?'mine':'all';}
+    setView(v);};
+  w.addEventListener('pointerup',end);w.addEventListener('pointercancel',end);
+  w.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();setView(S.view==='mine'?'all':'mine');}else if(e.key==='ArrowRight')setView('mine');else if(e.key==='ArrowLeft')setView('all');});})();
 
 /* ---------- 빛 정보 시트 ---------- */
 $('sClose').onclick=()=>{S.sel=null;$('sheet').classList.remove('on');};

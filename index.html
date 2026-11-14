@@ -55,6 +55,12 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .bottom .btn{background:#1A1A1F;color:var(--ink);white-space:nowrap;padding:0 14px}
 #toChats{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 #lightOff{background:transparent!important;color:var(--mute)!important}
+.vsw{position:relative;display:flex;width:184px;height:52px;border-radius:999px;background:#16161B;border:1px solid var(--line);padding:5px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer;z-index:6;pointer-events:auto}
+.vk{position:absolute;top:5px;left:5px;width:86px;height:40px;border-radius:999px;background:var(--ink);transition:transform .22s ease}
+.vsw.drag .vk{transition:none}
+.vsw.mine .vk{transform:translateX(86px)}
+.vl{flex:1;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--mute);position:relative;z-index:1;transition:color .22s;pointer-events:none}
+.vsw:not(.mine) .vl[data-v="all"],.vsw.mine .vl[data-v="mine"]{color:var(--bg);font-weight:500}
 .sheet{position:absolute;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));background:#16161B;border:1px solid var(--line);border-radius:20px;padding:18px;display:none;flex-direction:column;gap:12px;z-index:4;max-height:70vh;overflow-y:auto}
 .sheet.on{display:flex}
 .dot{display:inline-block;flex:none;border-radius:50%}
@@ -173,10 +179,7 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
       <button class="mebtn" id="meBtn" aria-label="내 설정"><span id="meAv"></span><span id="meLbl">내 설정</span></button>
       <button class="btn" id="sampleBtn" aria-pressed="true" style="min-height:30px;margin-top:6px;padding:0 12px;font-size:12px;background:#0d0d11">샘플 빛 보는 중</button>
     </div>
-    <div class="seg">
-      <button class="btn on" id="vAll" aria-pressed="true">전체</button>
-      <button class="btn" id="vMine" aria-pressed="false">내 빛들</button>
-    </div>
+    <div class="vsw" id="vsw" role="switch" aria-checked="false" aria-label="보기 전환: 전체 또는 내 빛들" tabindex="0"><span class="vk" id="vk"></span><span class="vl" data-v="all">전체</span><span class="vl" data-v="mine">내 빛들</span></div>
   </div>
   <canvas id="cv" aria-label="켜진 빛들의 지도. 빛을 눌러 선택하세요."></canvas>
   <div class="zoom"><button id="zIn" aria-label="확대">+</button><button id="zOut" aria-label="축소">−</button><button id="zFit" class="sm" aria-label="전체 보기">전체</button></div>
