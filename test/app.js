@@ -306,7 +306,7 @@ $('photoIn').onchange=()=>{const f=$('photoIn').files&&$('photoIn').files[0];if(
 $('photoDel').onclick=()=>{db.ref('photos/'+S.me).remove().then(()=>{S.photo=null;paintMe();}).catch(()=>{});};
 
 /* ---------- 1:1 대화 ---------- */
-function oneRooms(){const ks=new Set();others().forEach(o=>{if(isLinked(o.key))ks.add(o.key);});allFriends().forEach(k=>ks.add(k));Object.keys(S.dms).forEach(k=>{if(isFriend(k)||isLinked(k))ks.add(k);});
+function oneRooms(){const ks=new Set();others().forEach(o=>{if(isLinked(o.key)&&!isFriend(o.key))ks.add(o.key);});Object.keys(S.dms).forEach(k=>{if((isFriend(k)||isLinked(k))&&(S.dms[k]||[]).length)ks.add(k);});
   return [...ks].sort((a,b)=>(unreadOf(b)-unreadOf(a))||((lastAt(b))-(lastAt(a))));}
 function lastAt(k){const m=S.dms[k];return m&&m.length?m[m.length-1].at||0:0;}
 function unreadOf(k){if(k[0]==='s'){return (S.dms[k]||[]).filter(m=>!m.me&&!m.read).length;}const r=S.read[k]||0;return (S.dms[k]||[]).filter(m=>m.from!==S.me&&(m.at||0)>r).length;}
