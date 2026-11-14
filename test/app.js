@@ -379,8 +379,8 @@ function renderList(){setTab(S.ctab);renderGroups();
 S.ltab='all';
 function setLTab(t){S.ltab=t;[['lAll','all'],['lLinked','linked'],['lAdm','adm']].forEach(([id,v])=>{$(id).classList.toggle('on',t===v);$(id).setAttribute('aria-pressed',t===v);});$('secLinked').style.display=(t==='all'||t==='linked')?'flex':'none';$('secAdm').style.display=(t==='all'||t==='adm')?'flex':'none';}
 $('lAll').onclick=()=>setLTab('all');$('lLinked').onclick=()=>setLTab('linked');$('lAdm').onclick=()=>setLTab('adm');
-function renderLights(){setLTab(S.ltab);const L=$('linkedList');L.textContent='';const ls=others().filter(o=>isLinked(o.key));
-  ls.forEach(o=>{const b=el('button','item');b.type='button';const d=el('span');d.style.cssText=dotStyle(COL[o.g],14);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1';const t=el('span','t',label(o));if(isFriend(o.key))t.append(el('span','tag fr','친구'));w.append(t,el('span','s',desc(o)));b.append(d,w);
+function renderLights(){setLTab(S.ltab);const L=$('linkedList');L.textContent='';const ls=others().filter(o=>isLinked(o.key)&&!isFriend(o.key));
+  ls.forEach(o=>{const b=el('button','item');b.type='button';const d=el('span');d.style.cssText=dotStyle(COL[o.g],14);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1';const t=el('span','t',label(o));w.append(t,el('span','s',desc(o)));b.append(d,w);
     const n=unreadOf(o.key);if(n)b.append(el('span','badge',String(n)));b.onclick=()=>{S.chatFrom='lights';openChat(o.key);};L.append(b);});
   renderAdm();}
 function showLights(){S.sel=null;$('sheet').classList.remove('on');$('meSheet').classList.remove('on');renderLights();show('lightsScr');}
@@ -417,10 +417,12 @@ function renderFriends(){
   renderCatPanel();
   const cats=catList();const byCat={};fs.forEach(k=>{const c=catOf(k);(byCat[c]=byCat[c]||[]).push(k);});
   const sections=cats.map(c=>[c.id,c.name]).concat([['','분류 없음']]);
-  sections.forEach(([cid,name])=>{const ks=byCat[cid]||[];if(!ks.length&&cid==='')return;if(!ks.length&&!cats.length)return;
-    if(cats.length){const h=el('p','cat',name);h.append(el('span','n',ks.filter(online).length+'/'+ks.length));F.append(h);}
-    if(!ks.length){F.append(el('p','empty2','아직 이 분류에 친구가 없어요.'));return;}
-    ks.forEach(k=>F.append(friendRow(k)));});}
+  if(cats.length)F.append(el('p','empty2','친구 오른쪽의 ≡ 를 잡고 원하는 분류로 끌어다 놓으세요.'));
+  sections.forEach(([cid,name])=>{const ks=byCat[cid]||[];if(!ks.length&&!cats.length)return;
+    const box=el('div','col catbox');box.dataset.cat=cid;box.style.gap='8px';
+    if(cats.length){const h=el('p','cat',name);h.append(el('span','n',ks.filter(online).length+'/'+ks.length));box.append(h);}
+    if(!ks.length&&cats.length){const z=el('div','dropzone','여기로 끌어다 놓기');box.append(z);}
+    ks.forEach(k=>box.append(friendRow(k)));F.append(box);});}
 function catList(){return Object.entries(S.fcats||{}).filter(([,v])=>v&&v.name).map(([id,v])=>({id,name:cleanName(v.name),o:v.o||0})).sort((a,b)=>a.o-b.o);}
 function catOf(k){const c=(S.fmap||{})[k];return c&&(S.fcats||{})[c]?c:'';}
 function setCat(k,c){saveSetting('fmap/'+k,c||null);}
@@ -428,17 +430,23 @@ function friendRow(k){const wrap=el('div','col');wrap.style.gap='6px';
   const {row,w}=personRow(k,o=>o?'접속 중 · '+(o.place||nearestCity(o.lon,o.lat))+' 근처 · 눌러서 대화':'오프라인 · 눌러서 대화');
   w.style.cursor='pointer';w.setAttribute('role','button');w.tabIndex=0;w.onclick=()=>{S.chatFrom='friends';openChat(k);};
   const n=unreadOf(k);if(n)row.append(el('span','badge',String(n)));
-  const cb=sbtn('분류',null,()=>{S.fOpen=S.fOpen===k?null:k;renderFriends();});if(S.fOpen===k)cb.classList.add('solid');
+  const cb=el('span','grip','≡');cb.setAttribute('aria-label',nickOf(k)+' 분류 옮기기');cb.setAttribute('role','button');cb.tabIndex=0;attachDrag(cb,wrap,k);
   const cancel=sbtn('취소',null,()=>{});cancel.style.display='none';const del=sbtn('삭제',null,()=>{});
   const reset=()=>{clearTimeout(del._t);S.armed=false;delete del.dataset.arm;del.textContent='삭제';del.classList.remove('danger');cancel.style.display='none';cb.style.display='';};
   del.onclick=()=>{if(del.dataset.arm){S.armed=false;removeFriend(k);setCat(k,null);return;}del.dataset.arm='1';del.textContent='정말 삭제';del.classList.add('danger');cancel.style.display='';cb.style.display='none';S.armed=true;del._t=setTimeout(reset,5000);};cancel.onclick=reset;
-  row.append(cb,cancel,del);wrap.append(row);
-  if(S.fOpen===k){const box=el('div');box.style.cssText='display:flex;flex-wrap:wrap;gap:6px;padding:0 4px 4px 34px';const cur=catOf(k);
-    catList().forEach(c=>{const ch=el('button','chip'+(cur===c.id?' on':''),c.name);ch.type='button';ch.onclick=()=>{setCat(k,c.id);S.fOpen=null;toast(nickOf(k)+'님을 「'+c.name+'」으로 옮겼어요');};box.append(ch);});
-    const none=el('button','chip'+(cur===''?' on':''),'분류 없음');none.type='button';none.onclick=()=>{setCat(k,null);S.fOpen=null;};box.append(none);
-    const add=el('button','chip','+ 새 분류');add.type='button';add.onclick=()=>{S.catOpen=true;S.fOpen=null;renderFriends();setTimeout(()=>{const i=$('catNew');if(i)i.focus();},50);};box.append(add);
-    wrap.append(box);}
+  row.append(cancel,del);if(catList().length)row.append(cb);wrap.append(row);
   return wrap;}
+function attachDrag(h,wrap,k){let ghost=null,id=null,over=null,ox=0,oy=0,scrollT=null;
+  const target=(x,y)=>{if(ghost)ghost.style.display='none';const e=document.elementFromPoint(x,y);if(ghost)ghost.style.display='';return e&&e.closest('.catbox');};
+  const clear=()=>{document.querySelectorAll('.catbox.drop').forEach(b=>b.classList.remove('drop'));};
+  h.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();id=e.pointerId;try{h.setPointerCapture(id);}catch(_){}S.armed=true;
+    const r=wrap.getBoundingClientRect();ox=e.clientX-r.left;oy=e.clientY-r.top;ghost=wrap.cloneNode(true);ghost.classList.add('ghost');ghost.style.width=r.width+'px';ghost.style.left=r.left+'px';ghost.style.top=r.top+'px';document.body.appendChild(ghost);wrap.style.opacity='.3';try{navigator.vibrate&&navigator.vibrate(20);}catch(_){}});
+  h.addEventListener('pointermove',e=>{if(e.pointerId!==id||!ghost)return;ghost.style.left=(e.clientX-ox)+'px';ghost.style.top=(e.clientY-oy)+'px';
+    const t=target(e.clientX,e.clientY);if(t!==over){clear();over=t;if(t)t.classList.add('drop');}
+    clearInterval(scrollT);const sc=$('friends');if(e.clientY<90)scrollT=setInterval(()=>{sc.scrollTop-=12;window.scrollBy(0,-12);},16);else if(e.clientY>innerHeight-90)scrollT=setInterval(()=>{sc.scrollTop+=12;window.scrollBy(0,12);},16);});
+  const end=e=>{if(e.pointerId!==id||!ghost)return;clearInterval(scrollT);const t=target(e.clientX,e.clientY);clear();ghost.remove();ghost=null;wrap.style.opacity='';id=null;S.armed=false;
+    if(t&&t.dataset.cat!==undefined&&t.dataset.cat!==catOf(k)){const c=t.dataset.cat;setCat(k,c||null);const nm=c?((S.fcats[c]||{}).name||''):'분류 없음';toast(nickOf(k)+'님을 「'+nm+'」으로 옮겼어요');}else renderFriends();};
+  h.addEventListener('pointerup',end);h.addEventListener('pointercancel',end);}
 function renderCatPanel(){const P=$('catPanel');$('catBtn').textContent=S.catOpen?'닫기':'분류 관리';if(!S.catOpen){P.style.display='none';return;}P.style.display='flex';P.textContent='';
   P.append(el('p','lbl','친구를 이름 붙인 분류로 묶어서 볼 수 있어요. 예: 가족, 회사, 동네'));
   const cats=catList();
