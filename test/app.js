@@ -430,7 +430,7 @@ let gnPick=new Set();
 $('gNewBtn').onclick=()=>{if(Object.keys(S.groups).length>=GMAX){toast('별자리는 3개까지 들어갈 수 있어요');return;}gnPick=new Set();$('gName').value='';$('gnErr').style.display='none';renderGNew();show('gnew');};
 $('gnBack').onclick=()=>{renderList();show('chats');};$('gName').oninput=()=>{$('gnErr').style.display='none';};
 function renderGNew(){const C=$('gnCands');C.textContent='';const cs=allFriends();
-  if(!cs.length){C.append(el('p','empty2','함께할 친구가 아직 없어요. 이어진 빛과 친구를 맺은 뒤 다시 와 주세요.'));return;}
+  if(!cs.length){C.append(el('p','empty2','함께할 친구가 아직 없어요. 이어진 빛과 친구를 맺은 뒤 다시 와 주세요. 샘플 빛과 맺은 친구도 여기에 나와요.'));return;}
   cs.forEach(k=>{const lab=el('label','item');const cb=el('input');cb.type='checkbox';cb.style.cssText='width:20px;height:20px;accent-color:#FFB86B';cb.checked=gnPick.has(k);cb.onchange=()=>{if(cb.checked){if(gnPick.size>=MMAX-1){cb.checked=false;return;}gnPick.add(k);}else gnPick.delete(k);$('gnErr').style.display='none';};
     const o=findO(k);const p=o||S.P[k]||{g:'f'};const d=el('span');d.style.cssText=dotStyle(COL[p.g],14,!o);const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px';w.append(el('span','t',nickOf(k)),el('span','s',k[0]==='s'?'샘플 친구':o?'접속 중':'오프라인 · 다음에 접속하면 초대를 볼 수 있어요'));lab.append(cb,d,w);C.append(lab);});
   C.append(el('p','empty2','샘플 친구와 실제 친구는 한 별자리에 같이 넣을 수 없어요.'));}
