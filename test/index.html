@@ -293,7 +293,7 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 <div class="notice" id="notice" role="status"><span class="dot" id="nDot" style="width:12px;height:12px"></span><span id="nText" style="flex:1;font-size:14px;line-height:1.4"></span><button class="btn solid" id="nView" style="min-height:36px;padding:0 14px;font-size:13px">보기</button></div>
 </div>
 
-<script src="app.js"></script>
+<script>document.write('<script src="app.js?t='+Date.now()+'"><\/script>')</script>
 <script>
 (function(){var dp=null;var btns=function(){return document.querySelectorAll('.instBtn');};
 var standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
