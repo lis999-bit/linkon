@@ -204,7 +204,8 @@ function frame(now){requestAnimationFrame(frame);if(!$('room').classList.contain
   os.forEach(o=>{if(!seen[o.key])seen[o.key]={t:now,o};else seen[o.key].o=o;});
   const [mx,my]=proj(S.loc.lon,S.loc.lat);
   const links=os.filter(o=>isLinked(o.key));
-  links.forEach(o=>{const [x,y]=proj(o.lon,o.lat);ctx.globalAlpha=0.35+0.25*Math.sin(now/500);ctx.strokeStyle=COL[o.g];ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(x,y);ctx.stroke();ctx.globalAlpha=1;});
+  const lineTo=S.view==='mine'?os.filter(o=>isFriend(o.key)):links;
+  lineTo.forEach(o=>{const [x,y]=proj(o.lon,o.lat);ctx.globalAlpha=0.35+0.25*Math.sin(now/500);ctx.strokeStyle=S.view==='mine'?'#9FE1CB':COL[o.g];ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(x,y);ctx.stroke();ctx.globalAlpha=1;});
   drawn=[];
   for(const k in ghosts){const g=ghosts[k];const a=1-(now-g.t)/2000;if(a<=0){delete ghosts[k];continue;}if(S.view==='mine')continue;const [x,y]=proj(g.lon,g.lat);glow(x,y,3,COL[g.g],a*0.6);}
   os.forEach((o,i)=>{const linked=isLinked(o.key),adm=isAdmirer(o.key),fr=isFriend(o.key);
