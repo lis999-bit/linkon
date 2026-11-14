@@ -15,9 +15,11 @@ const POLY=[[126.1,37.72],[126.6,37.78],[127.1,38.28],[128.35,38.6],[128.62,38.2
 const COL={f:'#FFB86B',m:'#8FB8FF'},GL={f:'여성의 빛',m:'남성의 빛'};
 const THIS_YEAR=new Date().getFullYear(),MAX_BIRTH=THIS_YEAR-19;
 const GMAX=3,MMAX=8;
+const MOTTOS=['오늘 하루도 수고했어요','비 오는 날을 좋아해요','퇴근길 산책 중','야식 고민 중이에요','새벽 감성','고양이랑 사는 중','바다 보고 싶다','책 읽는 밤','주말만 기다려요','운동 끝!','',''];
 const REPLIES=['안녕하세요. 이 시간에 불 켜신 분이 있네요','저도 방금 불 켰어요','거기는 날씨 어때요?','오늘 하루 어땠어요?','여기는 좀 조용해요','반가워요, 같은 하늘 아래네요','저는 퇴근하고 쉬는 중이에요','이렇게 이어지니까 신기하네요'];
 
 function cleanNick(s){return String(s||'').replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁯﻿\s]/g,'').slice(0,10);}
+function cleanMotto(s){return String(s||'').replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g,' ').replace(/\s+/g,' ').trim().slice(0,40);}
 function cleanName(s){return String(s||'').replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁯﻿]/g,'').trim().slice(0,12);}
 function realAge(by){const a=THIS_YEAR-by;return (a>=19&&a<=110)?a:null;}
 function label(o){return o?(o.age!=null?o.nick+' ('+o.age+')':o.nick):'알 수 없는 빛';}
@@ -79,7 +81,7 @@ auth.onAuthStateChanged(async u=>{
   if(!p){for(let i=0;i<5&&!p;i++){await new Promise(r=>setTimeout(r,600));try{p=(await db.ref('profiles/'+u.uid).get()).val();}catch(e){}}}
   if(!p){await auth.signOut();show('auth');aErr('프로필을 불러오지 못했어요. 다시 로그인해 주세요');return;}
   S.prof={nick:cleanNick(p.nick),g:p.g==='m'?'m':'f',birth:p.birth,age:realAge(p.birth)};S.P[S.me]=S.prof;
-  try{const st=(await db.ref('settings/'+S.me).get()).val()||{};S.noReq=!!st.noReq;S.sample=st.sample!==false;S.read=st.read||{};if(typeof st.radius==='number')S.radius=st.radius;if(typeof st.region==='number')S.region=st.region;}catch(e){}
+  try{const st=(await db.ref('settings/'+S.me).get()).val()||{};S.noReq=!!st.noReq;S.sample=st.sample!==false;S.read=st.read||{};S.motto=cleanMotto(st.motto);$('mottoIn').value=S.motto;if(typeof st.radius==='number')S.radius=st.radius;if(typeof st.region==='number')S.region=st.region;}catch(e){}
   try{const ph=(await db.ref('photos/'+S.me).get()).val();S.photo=okImg(ph)?ph:null;}catch(e){}
   paintMe();paintReq();paintSample();paintRad();loadSampleFriends();loadSampleGroups();
   $('offTitle').textContent=label(S.prof)+'님, 불을 켜 볼까요?';
@@ -106,7 +108,7 @@ async function placeName(lat,lon){const key=lat.toFixed(2)+','+lon.toFixed(2);if
   return nearestCity(lon,lat);}
 function placeOf(o){return o.place||nearestCity(o.lon,o.lat);}
 async function refreshPlace(){if(!S.loc)return;const n=await placeName(S.loc.lat,S.loc.lon);if(n!==S.place){S.place=n;if(S.lit)publishLight().catch(()=>{});if($('meSheet').classList.contains('on'))paintLoc();}}
-async function publishLight(){if(!S.lit||!S.loc)return;const d={lat:S.loc.lat,lon:S.loc.lon,place:S.place||null,g:S.prof.g,nick:S.prof.nick,age:S.prof.age,noReq:!!S.noReq,t:TS};await db.ref('lights/'+S.me).set(d);}
+async function publishLight(){if(!S.lit||!S.loc)return;const d={motto:S.motto||null,lat:S.loc.lat,lon:S.loc.lon,place:S.place||null,g:S.prof.g,nick:S.prof.nick,age:S.prof.age,noReq:!!S.noReq,t:TS};await db.ref('lights/'+S.me).set(d);}
 
 $('switch').onclick=async()=>{if(S.busy)return;S.busy=true;$('offHint').style.color='';
   $('offHint').textContent='위치를 확인하는 중…';const c=await getGps();
@@ -124,7 +126,7 @@ window.addEventListener('beforeunload',()=>{if(S.lit&&S.me)db.ref('lights/'+S.me
 function sub(ref,ev,fn){ref.on(ev,fn,()=>{});S.subs.push(()=>ref.off(ev,fn));}
 function loadProfile(uid){if(S.P[uid]||uid[0]==='s'||S['pl'+uid])return;S['pl'+uid]=1;db.ref('profiles/'+uid).get().then(s=>{const p=s.val();if(p){S.P[uid]={nick:cleanNick(p.nick),g:p.g==='m'?'m':'f',birth:p.birth,age:realAge(p.birth)};refreshOpen();}}).catch(()=>{delete S['pl'+uid];});}
 function startSubs(){const me=S.me;
-  sub(db.ref('lights'),'value',s=>{const v=s.val()||{};const L={};Object.keys(v).forEach(k=>{if(k===me)return;const x=v[k];if(!x||typeof x.lat!=='number'||typeof x.lon!=='number')return;L[k]={key:k,g:x.g==='m'?'m':'f',nick:cleanNick(x.nick)||'빛',age:typeof x.age==='number'?x.age:null,lat:x.lat,lon:x.lon,noReq:x.noReq===true,place:cleanPlace(x.place)||null};S.P[k]=S.P[k]||{nick:L[k].nick,g:L[k].g,age:L[k].age};});S.L=L;onPeopleChanged();});
+  sub(db.ref('lights'),'value',s=>{const v=s.val()||{};const L={};Object.keys(v).forEach(k=>{if(k===me)return;const x=v[k];if(!x||typeof x.lat!=='number'||typeof x.lon!=='number')return;L[k]={key:k,g:x.g==='m'?'m':'f',nick:cleanNick(x.nick)||'빛',age:typeof x.age==='number'?x.age:null,lat:x.lat,lon:x.lon,noReq:x.noReq===true,motto:cleanMotto(x.motto),place:cleanPlace(x.place)||null};S.P[k]=S.P[k]||{nick:L[k].nick,g:L[k].g,age:L[k].age};});S.L=L;onPeopleChanged();});
   sub(db.ref('mypicks/'+me),'value',s=>{const v=s.val()||{};S.pickAt=new Map(Object.entries(v));S.picks=new Set(Object.keys(v));onPeopleChanged();});
   sub(db.ref('.info/serverTimeOffset'),'value',s=>{S.tOff=s.val()||0;});
   sub(db.ref('likes/'+me),'value',s=>{const v=s.val()||{};S.likedAt=new Map(Object.entries(v));S.likedBy=new Set(Object.keys(v));onPeopleChanged();});
@@ -199,7 +201,7 @@ function inKr(x,y){let c=false;for(let i=0,j=POLY.length-1;i<POLY.length;j=i++){
 let botSeq=0;
 function makeBot(){let lon=126.98,lat=37.57;for(let k=0;k<60;k++){let x,y;if(Math.random()<0.18){x=126+Math.random()*3.5;y=33.1+Math.random()*5.5;}else{let r=Math.random()*WT,c=CITIES[0];for(const ci of CITIES){r-=ci[3];if(r<=0){c=ci;break;}}const sd=0.04+Math.random()*0.12;x=c[1]+gs()*sd;y=c[2]+gs()*sd*0.8;}if(inKr(x,y)){lon=x;lat=y;break;}}
   const a=Math.random();const age=a<0.35?19+Math.floor(Math.random()*11):a<0.7?30+Math.floor(Math.random()*10):a<0.9?40+Math.floor(Math.random()*10):50+Math.floor(Math.random()*20);
-  return {key:'s'+(++botSeq).toString(36)+Math.random().toString(36).slice(2,7),sample:true,g:Math.random()<0.5?'f':'m',nick:(NA[Math.floor(Math.random()*NA.length)]+NB[Math.floor(Math.random()*NB.length)]).slice(0,10),age,lon:+lon.toFixed(3),lat:+lat.toFixed(3),warm:Math.random()<0.6,noReq:Math.random()<0.12,picksMe:false};}
+  return {key:'s'+(++botSeq).toString(36)+Math.random().toString(36).slice(2,7),sample:true,g:Math.random()<0.5?'f':'m',nick:(NA[Math.floor(Math.random()*NA.length)]+NB[Math.floor(Math.random()*NB.length)]).slice(0,10),age,lon:+lon.toFixed(3),lat:+lat.toFixed(3),motto:MOTTOS[Math.floor(Math.random()*MOTTOS.length)],warm:Math.random()<0.6,noReq:Math.random()<0.12,picksMe:false};}
 const BOTS=[];for(let i=0;i<220;i++)BOTS.push(makeBot());S.botPicks=new Set();
 setInterval(()=>{if(!S.sample)return;for(let n=0;n<2;n++){const i=Math.floor(Math.random()*BOTS.length);const b=BOTS[i];if(!S.botPicks.has(b.key)&&!b.picksMe&&!S.botFriends.has(b.key)&&!S.botOut.has(b.key))BOTS.splice(i,1);}while(BOTS.length<220)BOTS.push(makeBot());},2500);
 setInterval(()=>{if(!S.sample||!S.lit||S.noReq)return;if(Math.random()<0.5){const c=BOTS.filter(b=>!S.botPicks.has(b.key)&&!b.picksMe);if(c.length){const bb=c[Math.floor(Math.random()*c.length)];bb.picksMe=true;bb.picksMeAt=Date.now();onPeopleChanged();}}},14000);
@@ -318,13 +320,15 @@ function setView(v){S.view=v;$('radBtn').style.display=v==='mine'?'none':'';$('r
 /* ---------- 빛 정보 시트 ---------- */
 $('sClose').onclick=()=>{S.sel=null;$('sheet').classList.remove('on');};
 function renderSheet(){const o=findO(S.sel);
-  if(!o){$('sStatus').textContent='이 빛은 방금 꺼졌어요.';$('sToggle').style.display='none';$('sTalk').style.display=isFriend(S.sel)?'':'none';return;}
+  if(!o){$('sMotto').style.display='none';$('sStatus').textContent='이 빛은 방금 꺼졌어요.';$('sStatus').style.display='';$('sToggle').style.display='none';$('sTalk').style.display=isFriend(S.sel)?'':'none';return;}
   $('sDot').style.cssText=dotStyle(COL[o.g],14);$('sTitle').textContent=label(o);$('sSub').textContent=desc(o);
+  $('sMotto').textContent=o.motto?'“'+o.motto+'”':'';$('sMotto').style.display=o.motto?'':'none';
   const on=picked(o.key),linked=isLinked(o.key),fr=isFriend(o.key);$('sToggle').style.display='';
   $('sTalk').className='btn';$('sTalk').style.color='var(--ink)';
-  if(fr){$('sStatus').textContent='친구예요. 스위치를 켜지 않아도 바로 대화할 수 있어요.';$('sToggle').style.display='none';$('sTalk').style.display='';$('sTalk').textContent='1:1 대화하기';$('sTalk').className='btn solid';$('sTalk').style.color='';return;}
-  if(o.noReq&&!on&&!linked&&!likesMe(o.key)){$('sStatus').textContent='이 빛은 지금 빛 요청을 받지 않아요.';$('sToggle').style.display='none';}
-  else{$('sStatus').textContent=(!linked&&likesMe(o.key))?'이 빛이 당신을 골랐어요. 당신도 스위치를 켜면 바로 이어져요.':linked?'서로 골랐어요. 두 빛이 이어졌고, 대화가 열렸어요.':on?('이 빛의 스위치를 켰어요. 상대도 당신을 고르면 이어져요.'+(pickLeft(o.key)!=null?' 응답이 없으면 '+Math.max(1,Math.ceil(pickLeft(o.key)/60000))+'분 뒤 자동으로 꺼져요.':'')):'이 빛의 스위치는 꺼져 있어요.';
+  if(fr){$('sStatus').textContent='';$('sStatus').style.display='none';$('sToggle').style.display='none';$('sTalk').style.display='';$('sTalk').textContent='1:1 대화하기';$('sTalk').className='btn solid';$('sTalk').style.color='';return;}
+  if(o.noReq&&!on&&!linked&&!likesMe(o.key)){$('sStatus').textContent='이 빛은 지금 빛 요청을 받지 않아요.';$('sStatus').style.display='';$('sToggle').style.display='none';}
+  else{$('sStatus').textContent=(!linked&&likesMe(o.key))?'이 빛이 당신을 골랐어요. 당신도 스위치를 켜면 바로 이어져요.':linked?'서로 골랐어요. 두 빛이 이어졌고, 대화가 열렸어요.':on?('이 빛의 스위치를 켰어요. 상대도 당신을 고르면 이어져요.'+(pickLeft(o.key)!=null?' 응답이 없으면 '+Math.max(1,Math.ceil(pickLeft(o.key)/60000))+'분 뒤 자동으로 꺼져요.':'')):'';
+    $('sStatus').style.display=$('sStatus').textContent?'':'none';
     $('sToggle').textContent=on?'이 빛의 스위치 끄기':'이 빛의 스위치 켜기';$('sToggle').className=on?'btn':'btn solid';}
   $('sTalk').style.display=(linked||fr)?'':'none';$('sTalk').textContent=(fr&&!linked)?'1:1 대화하기':'대화하기';}
 $('sToggle').onclick=async()=>{const k=S.sel;if(!k)return;const on=picked(k);
@@ -339,6 +343,8 @@ function paintReq(){$('reqToggle').checked=!S.noReq;$('reqSub').textContent=S.no
 function paintLoc(){if(!S.loc){$('meLoc').textContent='위치 정보 없음';$('meLocSub').textContent='';return;}$('meLoc').textContent=(S.place||nearestCity(S.loc.lon,S.loc.lat))+' 근처';$('meLocSub').textContent='GPS로 받은 위치 · 다른 사람에게도 이 정도로만 보여요';}
 function openMe(){S.sel=null;$('sheet').classList.remove('on');paintLoc();$('meSheet').classList.add('on');}
 $('meBtn').onclick=()=>{$('meSheet').classList.contains('on')?$('meSheet').classList.remove('on'):openMe();};$('meClose').onclick=()=>$('meSheet').classList.remove('on');
+function saveMotto(){const v=cleanMotto($('mottoIn').value);$('mottoIn').value=v;if(v===(S.motto||''))return;S.motto=v;saveSetting('motto',v||null);publishLight().catch(()=>{});toast(v?'한마디를 남겼어요':'한마디를 지웠어요');}
+$('mottoIn').onblur=saveMotto;$('mottoIn').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('mottoIn').blur();}};
 $('reqToggle').onchange=()=>{S.noReq=!$('reqToggle').checked;saveSetting('noReq',S.noReq);paintReq();publishLight().catch(()=>{});if(S.noReq)$('notice').classList.remove('on');toast(S.noReq?'빛 요청 받기를 껐어요':'빛 요청 받기를 켰어요');};
 $('photoIn').onchange=()=>{const f=$('photoIn').files&&$('photoIn').files[0];if(!f)return;const url=URL.createObjectURL(f);const im=new Image();
   im.onload=()=>{const c=document.createElement('canvas');const n=120;c.width=n;c.height=n;const x=c.getContext('2d');const m=Math.min(im.width,im.height);x.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,n,n);let q=0.8,d=c.toDataURL('image/jpeg',q);while(d.length>=7900&&q>0.2){q-=0.1;d=c.toDataURL('image/jpeg',q);}URL.revokeObjectURL(url);
