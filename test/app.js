@@ -486,15 +486,18 @@ async function leaveGroup(G){const g=G.id;if(G.sample){delete S.groups[g];saveSa
     }else{await postSys(g,label(S.prof)+'님이 별자리를 나갔어요');const u={};if(isSub(G,me))u['groups/'+g+'/subs/'+me]=null;u['groups/'+g+'/members/'+me]=null;u['mygroups/'+me+'/'+g]=null;await db.ref().update(u);}
     unwatchGroup(g);S.gChat=null;renderList();show('chats');toast(G.name+'에서 나왔어요');
   }catch(e){delete S['left'+g];toast('나가지 못했어요. 다시 시도해 주세요');}}
+const WCOL=['#C3B5FF','#F4A6C8','#8EE3C8','#9CCBFF','#C7E68A','#FFB4A0','#F6D58A','#E0B3FF'];
+function wColor(k){return WCOL[hash(String(k))%WCOL.length];}
 function renderGMsgs(){const G=S.groups[S.gChat];const M=$('gmsgs');M.textContent='';if(!G)return;
   G.msgs.forEach(m=>{if(m.sys){M.append(el('p','sys',m.text));return;}
-    const wt=m.to?(m.me?'귓말 → '+nickOf(m.to):nickOf(m.from)+'님의 귓말'):(m.me?'':nickOf(m.from));if(wt)M.append(el('p','who'+(m.me?' r':'')+(m.to?' w':''),wt));
-    M.append(el('div','b '+(m.me?'me':'them')+(m.to?' w':''),m.text));});M.scrollTop=M.scrollHeight;}
+    const wt=m.to?(m.me?'귓말 → '+nickOf(m.to):nickOf(m.from)+'님의 귓말'):(m.me?'':nickOf(m.from));const wc=m.to?wColor(m.me?m.to:m.from):null;
+    if(wt){const w=el('p','who'+(m.me?' r':'')+(m.to?' w':''),wt);if(wc)w.style.color=wc;M.append(w);}
+    const bb=el('div','b '+(m.me?'me':'them')+(m.to?' w':''),m.text);if(wc){bb.style.color=wc;bb.style.borderColor=wc+'99';}M.append(bb);});M.scrollTop=M.scrollHeight;}
 function plainNick(k){return (findO(k)||S.P[k]||{}).nick||'';}
 function setAt(k){S.atTo=k;$('gIn').value='@'+plainNick(k)+' ';renderAt();}
 function renderAt(){const bar=$('atBar');bar.textContent='';const G=S.groups[S.gChat];const m=$('gIn').value.match(/^@(\S*)$/);if(!G||!m){bar.style.display='none';return;}
   const ms=memberKeys(G).filter(k=>k!==S.me&&plainNick(k).startsWith(m[1]));if(!ms.length){bar.style.display='none';return;}
-  ms.forEach(k=>{const c=el('button','chip','@'+nickOf(k));c.type='button';c.onclick=()=>{setAt(k);$('gIn').focus();};bar.append(c);});bar.style.display='flex';}
+  ms.forEach(k=>{const c=el('button','chip','@'+nickOf(k));c.style.color=wColor(k);c.style.borderColor=wColor(k)+'88';c.type='button';c.onclick=()=>{setAt(k);$('gIn').focus();};bar.append(c);});bar.style.display='flex';}
 $('gIn').oninput=()=>{$('gerr').style.display='none';if(S.atTo&&!$('gIn').value.startsWith('@'+plainNick(S.atTo)+' '))S.atTo=null;renderAt();};
 $('gcompose').onsubmit=async e=>{e.preventDefault();const G=S.groups[S.gChat];if(!G)return;const err=t=>{$('gerr').textContent=t;$('gerr').style.display='block';};
   const v=$('gIn').value.trim();if(!v)return err('한마디를 먼저 써 주세요');let to=null,text=v;
