@@ -81,7 +81,7 @@ auth.onAuthStateChanged(async u=>{
   if(!p){for(let i=0;i<5&&!p;i++){await new Promise(r=>setTimeout(r,600));try{p=(await db.ref('profiles/'+u.uid).get()).val();}catch(e){}}}
   if(!p){await auth.signOut();show('auth');aErr('프로필을 불러오지 못했어요. 다시 로그인해 주세요');return;}
   S.prof={nick:cleanNick(p.nick),g:p.g==='m'?'m':'f',birth:p.birth,age:realAge(p.birth)};S.P[S.me]=S.prof;
-  try{const st=(await db.ref('settings/'+S.me).get()).val()||{};S.noReq=!!st.noReq;S.sample=st.sample!==false;S.read=st.read||{};S.motto=cleanMotto(st.motto);$('mottoIn').value=S.motto;if(typeof st.radius==='number')S.radius=st.radius;if(typeof st.region==='number')S.region=st.region;}catch(e){}
+  try{const st=(await db.ref('settings/'+S.me).get()).val()||{};S.noReq=!!st.noReq;S.sample=st.sample!==false;S.read=st.read||{};S.dmClr=st.dmclr||{};S.motto=cleanMotto(st.motto);$('mottoIn').value=S.motto;if(typeof st.radius==='number')S.radius=st.radius;if(typeof st.region==='number')S.region=st.region;}catch(e){}
   try{const ph=(await db.ref('photos/'+S.me).get()).val();S.photo=okImg(ph)?ph:null;}catch(e){}
   paintMe();paintReq();paintSample();paintRad();loadSampleFriends();loadSampleGroups();
   $('offTitle').textContent=label(S.prof)+'님, 불을 켜 볼까요?';
@@ -365,7 +365,7 @@ function unreadOf(k){if(k[0]==='s'){return (S.dms[k]||[]).filter(m=>!m.me&&!m.re
 function totalUnread(){let n=0;Object.keys(S.dms).forEach(k=>n+=unreadOf(k));Object.values(S.groups).forEach(g=>n+=g.unread||0);return n;}
 function syncDmSubs(){const want=new Set();S.friends.forEach(k=>want.add(k));Object.keys(S.L).forEach(k=>{if(isLinked(k))want.add(k);});
   want.forEach(k=>{if(S.dmSubs[k])return;const ref=db.ref('dm/'+chatId(S.me,k)).orderByChild('at').limitToLast(100);S.dms[k]=S.dms[k]||[];
-    const fn=s=>{const v=s.val();if(!v||typeof v.text!=='string')return;const m={id:s.key,from:String(v.from),text:v.text.slice(0,500),at:v.at||0,me:v.from===S.me};const arr=S.dms[k];if(arr.some(x=>x.id===m.id))return;arr.push(m);arr.sort((a,b)=>a.at-b.at);
+    const fn=s=>{const v=s.val();if(!v||typeof v.text!=='string')return;const m={id:s.key,from:String(v.from),text:v.text.slice(0,500),at:v.at||0,me:v.from===S.me,sys:v.sys===true};if(m.at<=((S.dmClr||{})[k]||0))return;const arr=S.dms[k];if(arr.some(x=>x.id===m.id))return;arr.push(m);arr.sort((a,b)=>a.at-b.at);
       if(S.chatWith===k&&$('chat').classList.contains('on')){renderMsgs();markRead(k);}else if(!m.me&&m.at>S.startAt){notifyAct(k,nickOf(k)+': '+m.text.slice(0,40),'열기',()=>openChat(k));}
       refreshOpenLists();};
     ref.on('child_added',fn,()=>{});S.dmSubs[k]=()=>ref.off('child_added',fn);});
@@ -401,6 +401,7 @@ function renderMsgs(){const M=$('msgs');M.textContent='';const k=S.chatWith;cons
   if(ms.length&&ms[0].at)M.append(startLine(ms[0].at,'대화가 시작됐어요'));
   M.append(el('p','sys',k[0]==='s'?'샘플 빛이에요. 실제 사람이 아니라 자동으로 짧게 답해요.':isFriend(k)?'친구와의 1:1 대화예요. 기록은 서버에 저장돼요.':'두 빛이 이어졌어요. 기록은 서버에 저장돼요.'));
   let prev=null,day=ms.length&&ms[0].at?dayKey(ms[0].at):null;ms.forEach(m=>{if(m.at&&dayKey(m.at)!==day){day=dayKey(m.at);M.append(dateSep(m.at));prev=null;}
+    if(m.sys){M.append(el('p','sys',m.text));prev=null;return;}
     const b=el('div','b '+(m.me?'me':'them'),m.text);
     if(m.me){M.append(withTime(b,m.at,true));prev='me';return;}const first=prev!=='them';prev='them';M.append(themRow(k,first?nickOf(k):null,withTime(b,m.at,false),first));});M.scrollTop=M.scrollHeight;}
 function themRow(k,name,bubble,showAv,nameColor){const row=el('div','mrow2');const p=findO(k)||S.P[k]||{g:'f'};
@@ -705,7 +706,14 @@ function openReport(k,G){const nm=nickOf(k);openAct(sh=>{sh.append(h3(nm+'님 �
     closeAct();toast('신고를 접수했어요');if(cb.checked){await blockUser(k);if($('gchat').classList.contains('on')){renderGPanels();renderGMsgs(true);}}
     if(G&&G.members&&G.members[k]&&canKick(G,k))openAct(s3=>{s3.append(h3(nm+'님을 별자리에서 내보낼까요?'),el('p','hint','「'+G.name+'」에서 내보내면 다시 초대하기 전에는 들어올 수 없어요.'),aBtn('내보내기',()=>{closeAct();kickMember(G,k);},true),aBtn('그대로 두기',closeAct));});}),aBtn('취소',closeAct));});}
 function confirmBlock(k){const nm=nickOf(k);const inG=Object.values(S.groups).some(G=>G.members&&G.members[k]&&G.members[S.me]);openAct(s2=>{s2.append(h3(nm+'님을 차단할까요?'),el('p','hint','서로의 빛과 대화방이 보이지 않게 되고, 이어진 빛·친구·신청도 모두 끊어져요. 상대에게 차단 사실을 알리지 않아요. 내 설정 → 차단한 빛에서 풀 수 있어요.'+(inG?' 같은 별자리에서는 둘 다 그대로 남지만, 내 화면에서 상대 메시지가 가려지고 서로 귓말을 할 수 없어요.':'')),aBtn('차단하기',async()=>{closeAct();await blockUser(k);if($('gchat').classList.contains('on')){renderGPanels();renderGMsgs(true);}},true),aBtn('취소',closeAct));});}
-function openPersonMenu(k){const nm=nickOf(k);openAct(sh=>{sh.append(h3(nm));
+async function leaveDm(k){const nm=nickOf(k);
+  if(k[0]==='s'){S.dms[k]=[];saveSampleFriends();}
+  else{try{await db.ref('dm/'+chatId(S.me,k)).push({from:S.me,text:label(S.prof)+'님이 대화방을 나갔어요',at:TS,sys:true});}catch(e){}
+    try{await db.ref('settings/'+S.me+'/dmclr/'+k).set(TS);const t=(await db.ref('settings/'+S.me+'/dmclr/'+k).get()).val()||Date.now();S.dmClr=S.dmClr||{};S.dmClr[k]=t;S.dms[k]=(S.dms[k]||[]).filter(m=>m.at>t);}
+    catch(e){toast('나가지 못했어요. 다시 시도해 주세요');return;}}
+  S.chatWith=null;renderList();show('chats');toast(nm+'님과의 대화방에서 나왔어요');}
+function confirmLeaveDm(k){const nm=nickOf(k);openAct(sh=>{sh.append(h3('대화방을 나갈까요?'),el('p','hint','내 화면의 대화 기록이 모두 지워지고 되돌릴 수 없어요. '+nm+'님 화면에는 "대화방을 나갔어요"가 표시되고, 그쪽 기록은 남아요. '+(isFriend(k)?'친구 관계는':'이어진 빛은')+' 그대로라서, 다시 대화하면 빈 대화방에서 새로 시작해요.'),aBtn('나가기',()=>{closeAct();leaveDm(k);},true),aBtn('취소',closeAct));});}
+function openPersonMenu(k){const nm=nickOf(k);openAct(sh=>{sh.append(h3(nm));if(S.chatWith===k&&$('chat').classList.contains('on'))sh.append(aBtn('대화방 나가기',()=>confirmLeaveDm(k)));
   sh.append(aBtn('신고하기',()=>openReport(k)),aBtn('차단하기',()=>confirmBlock(k),true),aBtn('닫기',closeAct));});}
 $('sMore').onclick=()=>{if(S.sel)openPersonMenu(S.sel);};
 $('chMore').onclick=()=>{if(S.chatWith)openPersonMenu(S.chatWith);};
