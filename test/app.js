@@ -208,6 +208,33 @@ $('sampleBtn').onclick=()=>{S.sample=!S.sample;saveSetting('sample',S.sample);pa
 
 /* ---------- 지도 ---------- */
 const cv=$('cv'),ctx=cv.getContext('2d');let W=0,H=0;const Z={s:1,x:0,y:0};
+/* ----- 사실적인 지도 바탕: 해안선·시도 경계 (공개 지도 데이터) ----- */
+const GEO={kr:null,near:null,paths:null,W:0,H:0};
+function geoRings(geom){const out=[];if(!geom)return out;if(geom.type==='Polygon')geom.coordinates.forEach(r=>out.push(r));else if(geom.type==='MultiPolygon')geom.coordinates.forEach(p=>p.forEach(r=>out.push(r)));return out;}
+async function loadGeo(){
+  const okLL=rs=>rs.length&&rs[0][0]&&rs[0][0][0]>123&&rs[0][0][0]<132&&rs[0][0][1]>32&&rs[0][0][1]<39.5;
+  try{if(window.topojson){const r=await fetch('https://cdn.jsdelivr.net/gh/southkorea/southkorea-maps@master/kostat/2018/json/skorea-provinces-2018-topo-simple.json');if(r.ok){const tj=await r.json();const key=Object.keys(tj.objects||{})[0];if(key){const fc=topojson.feature(tj,tj.objects[key]);const kr=(fc.features||[]).map(f=>geoRings(f.geometry)).filter(okLL);if(kr.length>5)GEO.kr=kr;}}}}catch(e){}
+  if(!GEO.kr){try{const r=await fetch('https://cdn.jsdelivr.net/gh/southkorea/southkorea-maps@master/kostat/2013/json/skorea_provinces_geo_simple.json');if(r.ok){const j=await r.json();const kr=(j.features||[]).map(f=>geoRings(f.geometry)).filter(okLL);if(kr.length>5)GEO.kr=kr;}}catch(e){}}
+  try{if(window.topojson){const r=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json');if(r.ok){const tj=await r.json();const fc=topojson.feature(tj,tj.objects.countries);
+    const kc=fc.features.find(f=>String(f.id)==='410');if(kc)GEO.coast=geoRings(kc.geometry);
+    GEO.near=fc.features.filter(f=>['408','392','156','643'].includes(String(f.id))).map(f=>geoRings(f.geometry).filter(rg=>rg.some(([lo,la])=>lo>118&&lo<136&&la>30&&la<45))).filter(a=>a.length);}}}catch(e){}
+  GEO.paths=null;}
+loadGeo();
+function buildGeoPaths(){const mk=rings=>{const p=new Path2D();rings.forEach(rg=>{rg.forEach(([lo,la],i)=>{const [x,y]=base(lo,la);i?p.lineTo(x,y):p.moveTo(x,y);});p.closePath();});return p;};
+  const kr=GEO.kr?GEO.kr.map(mk):[mk([POLY.map(p=>[p[0],p[1]])])];const all=new Path2D();kr.forEach(p=>all.addPath(p));
+  const coast=GEO.coast?mk(GEO.coast):all;GEO.paths={kr,all,coast,near:GEO.near?GEO.near.map(mk):[],real:!!GEO.kr,hasCoast:!!GEO.coast};GEO.W=W;GEO.H=H;}
+let seaBg=null;
+function drawBase(){if(!GEO.paths||GEO.W!==W||GEO.H!==H||(GEO.kr&&!GEO.paths.real)||(GEO.coast&&!GEO.paths.hasCoast))buildGeoPaths();
+  if(!seaBg||seaBg.W!==W||seaBg.H!==H){const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');const g=x.createRadialGradient(W*.5,H*.45,0,W*.5,H*.45,Math.max(W,H)*.8);g.addColorStop(0,'#0b1220');g.addColorStop(.6,'#070b14');g.addColorStop(1,'#04060b');x.fillStyle=g;x.fillRect(0,0,W,H);
+    for(let i=0;i<900;i++){x.fillStyle='rgba(120,160,220,'+(Math.random()*0.035)+')';x.fillRect(Math.random()*W,Math.random()*H,1,1);}seaBg=c;seaBg.W=W;seaBg.H=H;}
+  ctx.drawImage(seaBg,0,0,W,H);
+  const P=GEO.paths,k=Z.s;ctx.save();ctx.translate(Z.x,Z.y);ctx.scale(k,k);
+  P.near.forEach(p=>{ctx.fillStyle='#0d1018';ctx.fill(p,'evenodd');ctx.strokeStyle='rgba(140,170,220,0.10)';ctx.lineWidth=0.8/k;ctx.stroke(p);});
+  const land=P.real?P.all:P.coast;const lg=ctx.createLinearGradient(0,0,0,H);lg.addColorStop(0,'#161a24');lg.addColorStop(1,'#12151d');ctx.fillStyle=lg;ctx.fill(land,'evenodd');
+  ctx.save();ctx.clip(land,'evenodd');const sh=ctx.createRadialGradient(W*.35,H*.3,0,W*.5,H*.5,Math.max(W,H)*.7);sh.addColorStop(0,'rgba(255,255,255,0.035)');sh.addColorStop(1,'rgba(0,0,0,0.12)');ctx.fillStyle=sh;ctx.fillRect(-W,-H,W*3,H*3);ctx.restore();
+  if(P.real){ctx.strokeStyle='rgba(237,235,228,0.07)';ctx.lineWidth=0.7/k;P.kr.forEach(p=>ctx.stroke(p));}
+  const cl=P.hasCoast?P.coast:P.all;ctx.strokeStyle='rgba(110,170,255,0.10)';ctx.lineWidth=4/k;ctx.stroke(cl);ctx.strokeStyle='rgba(170,205,255,0.28)';ctx.lineWidth=1/k;ctx.stroke(cl);
+  ctx.restore();}
 function resize(){W=cv.clientWidth||390;H=Math.round(window.innerHeight||844);const d=window.devicePixelRatio||1;cv.width=W*d;cv.height=H*d;cv.style.height=H+'px';ctx.setTransform(d,0,0,d,0,0);clampZ();}
 window.addEventListener('resize',()=>{if($('room').classList.contains('on'))resize();});
 function base(lon,lat){const top=110,h=H-210;const s=Math.min((W-30)/(3.9*0.81),h/5.9);const ox=(W-3.9*0.81*s)/2;return [ox+(lon-125.85)*0.81*s,top+(38.85-lat)*s];}
@@ -217,8 +244,7 @@ function zoomAt(px,py,ns){ns=Math.max(1,Math.min(14,ns));const wx=(px-Z.x)/Z.s,w
 function glow(x,y,r,c,a){ctx.globalAlpha=a*0.16;ctx.fillStyle=c;ctx.beginPath();ctx.arc(x,y,r*3,0,7);ctx.fill();ctx.globalAlpha=a*0.35;ctx.beginPath();ctx.arc(x,y,r*1.8,0,7);ctx.fill();ctx.globalAlpha=a;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.globalAlpha=1;}
 const seen={},ghosts={};let drawn=[];
 function frame(now){requestAnimationFrame(frame);if(!$('room').classList.contains('on')||!S.loc)return;
-  ctx.fillStyle='#07070a';ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(237,235,228,0.05)';ctx.lineWidth=1;ctx.beginPath();POLY.forEach((p,i)=>{const [x,y]=proj(p[0],p[1]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();ctx.stroke();
+  drawBase();
   if(S.radius&&S.view!=='mine'){const [cx,cy]=proj(S.loc.lon,S.loc.lat);const [,ry]=proj(S.loc.lon,S.loc.lat+S.radius/111);const r=Math.abs(cy-ry);ctx.save();ctx.strokeStyle='rgba(255,246,224,0.22)';ctx.setLineDash([4,6]);ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.stroke();ctx.restore();}
   const os=others().filter(inRadius);const keys=new Set(os.map(o=>o.key));
   for(const k in seen){if(!keys.has(k)){ghosts[k]={...seen[k].o,t:now};delete seen[k];}}
