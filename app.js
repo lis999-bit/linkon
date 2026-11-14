@@ -125,7 +125,13 @@ function findO(k){return S.L[k]||(k[0]==='s'?BOTS.find(b=>b.key===k):null)||null
 function picked(k){return k[0]==='s'?S.botPicks.has(k):S.picks.has(k);}
 function likesMe(k){if(k[0]==='s'){const b=BOTS.find(x=>x.key===k);return !!(b&&b.picksMe);}return S.likedBy.has(k);}
 function isLinked(k){return picked(k)&&likesMe(k);}
-function isFriend(k){return S.friends.has(k);}
+S.botFriends=new Set();S.botOut=new Set();S.botNo=new Set();
+function isFriend(k){return k[0]==='s'?S.botFriends.has(k):S.friends.has(k);}
+function allFriends(){return [...S.friends,...S.botFriends];}
+function isOut(k){return k[0]==='s'?S.botOut.has(k):S.outReq.has(k);}
+function isNo(k){return k[0]==='s'?S.botNo.has(k):S.frNo.has(k);}
+function botFriendReq(k){const b=BOTS.find(x=>x.key===k);S.botOut.add(k);toast('친구를 신청했어요. 상대가 수락하면 친구가 돼요');
+  setTimeout(()=>{if(!S.botOut.has(k))return;S.botOut.delete(k);if(b&&b.warm){S.botFriends.add(k);notifyAct(k,label(b)+'님이 친구 신청을 수락했어요 (샘플)','대화',()=>openChat(k));}else{S.botNo.add(k);notifyAct(k,(b?label(b):'샘플 빛')+'님이 친구 신청을 거절했어요 (샘플)','확인',()=>{});}onPeopleChanged();},1800+Math.random()*2500);}
 function isAdmirer(k){return !S.noReq&&likesMe(k)&&!picked(k);}
 function online(k){return !!S.L[k]||(S.sample&&k[0]==='s'&&BOTS.some(b=>b.key===k));}
 
@@ -153,7 +159,7 @@ function makeBot(){let lon=126.98,lat=37.57;for(let k=0;k<60;k++){let x,y;if(Mat
   const a=Math.random();const age=a<0.35?19+Math.floor(Math.random()*11):a<0.7?30+Math.floor(Math.random()*10):a<0.9?40+Math.floor(Math.random()*10):50+Math.floor(Math.random()*20);
   return {key:'s'+(++botSeq),sample:true,g:Math.random()<0.5?'f':'m',nick:(NA[Math.floor(Math.random()*NA.length)]+NB[Math.floor(Math.random()*NB.length)]).slice(0,10),age,lon:+lon.toFixed(3),lat:+lat.toFixed(3),warm:Math.random()<0.6,noReq:Math.random()<0.12,picksMe:false};}
 const BOTS=[];for(let i=0;i<220;i++)BOTS.push(makeBot());S.botPicks=new Set();
-setInterval(()=>{if(!S.sample)return;for(let n=0;n<2;n++){const i=Math.floor(Math.random()*BOTS.length);const b=BOTS[i];if(!S.botPicks.has(b.key)&&!b.picksMe)BOTS.splice(i,1);}while(BOTS.length<220)BOTS.push(makeBot());},2500);
+setInterval(()=>{if(!S.sample)return;for(let n=0;n<2;n++){const i=Math.floor(Math.random()*BOTS.length);const b=BOTS[i];if(!S.botPicks.has(b.key)&&!b.picksMe&&!S.botFriends.has(b.key)&&!S.botOut.has(b.key))BOTS.splice(i,1);}while(BOTS.length<220)BOTS.push(makeBot());},2500);
 setInterval(()=>{if(!S.sample||!S.lit||S.noReq)return;if(Math.random()<0.5){const c=BOTS.filter(b=>!S.botPicks.has(b.key)&&!b.picksMe);if(c.length){c[Math.floor(Math.random()*c.length)].picksMe=true;onPeopleChanged();}}},14000);
 function paintSample(){$('sampleBtn').textContent=S.sample?'샘플 빛 보는 중':'샘플 빛 끄고 실제만';$('sampleBtn').setAttribute('aria-pressed',S.sample);}
 $('sampleBtn').onclick=()=>{S.sample=!S.sample;saveSetting('sample',S.sample);paintSample();onPeopleChanged();};
@@ -198,7 +204,7 @@ function frame(now){requestAnimationFrame(frame);if(!$('room').classList.contain
     $('count').textContent=(os.length+1).toLocaleString('ko-KR')+'개';$('empty').style.display=os.length?'none':'block';
     const rooms=oneRooms().length+Object.keys(S.groups).length;const adms=os.filter(o=>isAdmirer(o.key)).length;
     $('toChats').textContent='대화방 '+rooms+(adms?' · 나를 고른 빛 '+adms:'')+(totalUnread()?' · 새 메시지':'');
-    const onF=[...S.friends].filter(k=>S.L[k]).length;$('toFriends').textContent=(S.friends.size?'친구 '+onF+'/'+S.friends.size:'친구')+(S.inReq.size?' · 신청 '+S.inReq.size:'');}
+    const afs=allFriends();const onF=afs.filter(k=>online(k)).length;$('toFriends').textContent=(afs.length?'친구 '+onF+'/'+afs.length:'친구')+(S.inReq.size?' · 신청 '+S.inReq.size:'');}
 }
 requestAnimationFrame(frame);
 
@@ -259,7 +265,7 @@ $('photoIn').onchange=()=>{const f=$('photoIn').files&&$('photoIn').files[0];if(
 $('photoDel').onclick=()=>{db.ref('photos/'+S.me).remove().then(()=>{S.photo=null;paintMe();}).catch(()=>{});};
 
 /* ---------- 1:1 대화 ---------- */
-function oneRooms(){const ks=new Set();others().forEach(o=>{if(isLinked(o.key))ks.add(o.key);});S.friends.forEach(k=>ks.add(k));Object.keys(S.dms).forEach(k=>{if(isFriend(k)||isLinked(k))ks.add(k);});
+function oneRooms(){const ks=new Set();others().forEach(o=>{if(isLinked(o.key))ks.add(o.key);});allFriends().forEach(k=>ks.add(k));Object.keys(S.dms).forEach(k=>{if(isFriend(k)||isLinked(k))ks.add(k);});
   return [...ks].sort((a,b)=>(unreadOf(b)-unreadOf(a))||((lastAt(b))-(lastAt(a))));}
 function lastAt(k){const m=S.dms[k];return m&&m.length?m[m.length-1].at||0:0;}
 function unreadOf(k){if(k[0]==='s'){return (S.dms[k]||[]).filter(m=>!m.me&&!m.read).length;}const r=S.read[k]||0;return (S.dms[k]||[]).filter(m=>m.from!==S.me&&(m.at||0)>r).length;}
@@ -281,10 +287,11 @@ $('chAv').onclick=()=>{const v=S.photos[S.chatWith];if(!v)return;$('bigImg').src
 function updChatHead(){const k=S.chatWith;if(!k)return;const o=findO(k);const p=o||S.P[k]||{g:'f',nick:'빛'};
   $('chDot').style.cssText=dotStyle(COL[p.g],14,!o);if(S.photos[k]&&$('chAv').style.display!=='none')$('chDot').style.display='none';
   $('chTitle').textContent=nickOf(k);const fr=isFriend(k),lk=isLinked(k);$('chSub').textContent=(o?'접속 중 · ':'오프라인 · ')+(fr?'친구':'이어진 빛')+(o?' · '+nearestCity(o.lon,o.lat)+' 근처':'');
-  const b=$('chFr');if(k[0]==='s'){b.style.display='none';return;}
-  const theyReq=S.inReq.has(k);b.style.display=(fr||S.outReq.has(k)||S.frNo.has(k)||lk)?'':'none';
-  b.textContent=fr?'친구예요':S.frNo.has(k)?'신청 거절됨':S.outReq.has(k)?'수락 기다리는 중':theyReq?'친구 수락':'친구 신청';b.style.opacity=(fr||S.outReq.has(k)||S.frNo.has(k))?'0.6':'1';}
-$('chFr').onclick=async()=>{const k=S.chatWith;if(!k||isFriend(k)||S.outReq.has(k)||S.frNo.has(k))return;
+  const b=$('chFr');
+  const theyReq=k[0]!=='s'&&S.inReq.has(k);b.style.display=(fr||isOut(k)||isNo(k)||lk)?'':'none';
+  b.textContent=fr?'친구예요':isNo(k)?'신청 거절됨':isOut(k)?'수락 기다리는 중':theyReq?'친구 수락':'친구 신청';b.style.opacity=(fr||isOut(k)||isNo(k))?'0.6':'1';}
+$('chFr').onclick=async()=>{const k=S.chatWith;if(!k||isFriend(k)||isOut(k)||isNo(k))return;
+  if(k[0]==='s'){if(!isLinked(k)){toast('친구 신청은 서로 이어진 빛끼리만 할 수 있어요');return;}botFriendReq(k);updChatHead();return;}
   if(S.inReq.has(k)){await acceptFriend(k);return;}
   if(!isLinked(k)){toast('친구 신청은 서로 이어진 빛끼리만 할 수 있어요');return;}
   const u={};u['freq/'+k+'/'+S.me]={at:TS};u['settings/'+S.me+'/myreq/'+k]=true;
@@ -328,16 +335,16 @@ function showFriends(){S.sel=null;$('sheet').classList.remove('on');$('meSheet')
 $('toFriends').onclick=showFriends;$('fBack').onclick=()=>show('room');
 async function acceptFriend(k){const u={};u['friends/'+S.me+'/'+k]=true;u['friends/'+k+'/'+S.me]=true;u['freq/'+S.me+'/'+k]=null;try{await db.ref().update(u);toast(nickOf(k)+'님과 친구가 됐어요');}catch(e){toast('수락하지 못했어요. 다시 시도해 주세요');}}
 async function declineFriend(k){const u={};u['freq/'+S.me+'/'+k]=null;u['frno/'+k+'/'+S.me]=true;try{await db.ref().update(u);}catch(e){}}
-async function cancelReq(k){const u={};u['freq/'+k+'/'+S.me]=null;u['settings/'+S.me+'/myreq/'+k]=null;try{await db.ref().update(u);}catch(e){}}
-async function removeFriend(k){const u={};u['friends/'+S.me+'/'+k]=null;u['friends/'+k+'/'+S.me]=null;try{await db.ref().update(u);toast(nickOf(k)+'님과 친구를 끊었어요');}catch(e){toast('삭제하지 못했어요');}}
+async function cancelReq(k){if(k[0]==='s'){S.botOut.delete(k);onPeopleChanged();return;}const u={};u['freq/'+k+'/'+S.me]=null;u['settings/'+S.me+'/myreq/'+k]=null;try{await db.ref().update(u);}catch(e){}}
+async function removeFriend(k){if(k[0]==='s'){S.botFriends.delete(k);toast(nickOf(k)+'님과 친구를 끊었어요');onPeopleChanged();return;}const u={};u['friends/'+S.me+'/'+k]=null;u['friends/'+k+'/'+S.me]=null;try{await db.ref().update(u);toast(nickOf(k)+'님과 친구를 끊었어요');}catch(e){toast('삭제하지 못했어요');}}
 function personRow(k,sub){const o=findO(k);const p=o||S.P[k]||{g:'f'};const row=el('div','item');row.style.cursor='default';const av=el('span','av');const d=el('span');d.style.cssText=dotStyle(COL[p.g],16,!o);av.append(d,el('span','st '+(o?'on':'off')));
   const w=el('span');w.style.cssText='display:flex;flex-direction:column;gap:2px;flex:1;min-width:0';w.append(el('span','t',nickOf(k)),el('span',o?'on-dot':'off-dot',sub(o)));row.append(av,w);return {row,w};}
 function renderFriends(){
   const I=$('inList');I.textContent='';$('inHead').style.display=S.inReq.size?'block':'none';
   S.inReq.forEach((_,k)=>{const {row}=personRow(k,o=>o?'접속 중 · '+desc(o):'오프라인');row.append(sbtn('수락','solid',()=>acceptFriend(k)),sbtn('거절',null,()=>declineFriend(k)));I.append(row);});
-  const O=$('outList');O.textContent='';const outs=[...S.outReq].filter(k=>!isFriend(k));$('outHead').style.display=outs.length?'block':'none';
+  const O=$('outList');O.textContent='';const outs=[...S.outReq].filter(k=>!isFriend(k)).concat([...S.botOut]);$('outHead').style.display=outs.length?'block':'none';
   outs.forEach(k=>{const {row}=personRow(k,()=>'수락 기다리는 중');row.append(sbtn('취소',null,()=>cancelReq(k)));O.append(row);});
-  const F=$('frList');F.textContent='';const fs=[...S.friends].sort((a,b)=>(S.L[b]?1:0)-(S.L[a]?1:0));const on=fs.filter(k=>S.L[k]).length;
+  const F=$('frList');F.textContent='';const fs=allFriends().sort((a,b)=>(online(b)?1:0)-(online(a)?1:0));const on=fs.filter(k=>online(k)).length;
   $('frHead').style.display=fs.length?'block':'none';$('frEmpty').style.display=(fs.length||S.inReq.size||outs.length)?'none':'block';$('frSum').textContent=fs.length?'접속 중 '+on+'명 · 전체 '+fs.length+'명':'';
   fs.forEach(k=>{const o=S.L[k];const {row,w}=personRow(k,o=>o?'접속 중 · '+nearestCity(o.lon,o.lat)+' 근처 · 눌러서 대화':'오프라인 · 눌러서 대화');
     w.style.cursor='pointer';w.setAttribute('role','button');w.tabIndex=0;w.onclick=()=>{S.chatFrom='friends';openChat(k);};
