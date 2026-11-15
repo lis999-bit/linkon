@@ -51,6 +51,19 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .zoom button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#1A1A1F;color:var(--ink);font-size:20px;cursor:pointer;padding:0}
 .zoom button.sm{font-size:11px}
 #room:has(.sheet.on) .zoom{display:none}
+.mtbtn{position:absolute;left:14px;bottom:calc(80px + env(safe-area-inset-bottom));z-index:3;min-height:40px;padding:0 16px;border-radius:999px;border:1px solid #3A3550;background:rgba(20,18,32,.85);color:#E9E2FF;font:inherit;font-size:14px;box-shadow:0 0 18px rgba(170,150,255,.18);cursor:pointer}
+#room:has(.sheet.on) .mtbtn{display:none}
+.mtwait{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:4;display:none;flex-direction:column;align-items:center;gap:8px;text-align:center;width:min(300px,86vw);padding:22px 18px;border-radius:20px;background:rgba(14,13,22,.92);border:1px solid #2E2A44}
+.mtwait.on{display:flex}
+.mtstar{width:46px;height:46px;position:relative}
+.mtstar::before{content:"";position:absolute;width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 10px 3px #CFC4FF;left:36px;top:6px;animation:mtfall 1.4s ease-in infinite}
+.mtstar::after{content:"";position:absolute;width:34px;height:2px;left:8px;top:22px;background:linear-gradient(90deg,transparent,#CFC4FF);transform:rotate(-35deg);opacity:.7;animation:mtfade 1.4s ease-in infinite}
+@keyframes mtfall{0%{transform:translate(0,0);opacity:1}100%{transform:translate(-30px,30px);opacity:0}}
+@keyframes mtfade{0%{opacity:.8}100%{opacity:0}}
+.mttime{font-size:13px;font-variant-numeric:tabular-nums;color:#E9E2FF;border:1px solid #3A3550;border-radius:999px;padding:4px 10px}
+.mttime.low{color:#FF9A8A;border-color:#6A3A3A}
+.mtbar{display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid #1F1F24}
+#meteor .b.them{border-color:#3A3550}
 .bottom{position:absolute;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:3}
 .bottom .btn{background:#1A1A1F;color:var(--ink);white-space:nowrap;padding:0 14px}
 #toChats{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
@@ -75,7 +88,7 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .notice{position:fixed;left:50%;width:min(456px,calc(100% - 24px));top:calc(78px + env(safe-area-inset-top));display:flex;align-items:center;gap:10px;background:#1C1C22;border:1px solid #3A3934;border-radius:16px;padding:10px 10px 10px 14px;z-index:30;transform:translate(-50%,-160%);opacity:0;transition:transform .45s,opacity .45s}
 .notice.on{transform:translate(-50%,0);opacity:1}
 #chats,#friends,#gnew,#lightsScr{flex-direction:column;padding:calc(16px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom));gap:12px}
-#chat,#gchat{flex-direction:column;height:100vh;height:100dvh}
+#chat,#gchat,#meteor{flex-direction:column;height:100vh;height:100dvh}
 .head{display:flex;align-items:center;gap:10px}
 .head h2{margin:0;font-size:20px;font-weight:500}
 #chat .head,#gchat .head{padding:calc(12px + env(safe-area-inset-top)) 14px 12px;border-bottom:1px solid #1F1F24;flex-wrap:wrap}
@@ -110,6 +123,11 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 .who{font-size:12px;color:var(--mute);margin:0 0 -6px 4px}
 .who.r{align-self:flex-end;margin:0 4px -6px 0}
 .who.w{color:#A99BF0}
+.brow{display:flex;align-items:flex-end;gap:6px;max-width:86%}
+.brow.me{align-self:flex-end;justify-content:flex-end}
+.brow .b{max-width:100%;min-width:0}
+.btime{font-size:11px;color:var(--dim);white-space:nowrap;flex:none;padding-bottom:2px}
+.datesep{align-self:center;font-size:12px;color:var(--mute);background:#141418;border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin:8px 0}
 .mrow2{display:flex;align-items:flex-start;gap:10px;align-self:flex-start;max-width:86%}
 .who2{font-size:12px;color:var(--mute);margin-left:2px}
 .sys{align-self:center;font-size:12px;color:var(--dim);text-align:center;line-height:1.6;margin:0}
@@ -136,8 +154,16 @@ canvas{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-
 #splash{position:fixed;inset:0;z-index:100;background:#07070a;transition:opacity .6s ease,visibility .6s}
 #splash.out{opacity:0;visibility:hidden}
 #spc{display:block;width:100%;height:100%}
+.actwrap{position:fixed;inset:0;z-index:45;display:none}
+.actwrap.on{display:block}
+.actbg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.actsheet{position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:min(480px,100%);background:#16161B;border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;max-height:85vh;overflow-y:auto}
+.actsheet h3{margin:0;font-size:17px;font-weight:500}
+.actbtn{min-height:48px;border-radius:14px;border:1px solid var(--line);background:#1A1A1F;color:var(--ink);font-size:15px;text-align:left;padding:0 16px;cursor:pointer}
+.actbtn.danger{color:#FF9A8A}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -190,7 +216,8 @@ new MutationObserver(function(){if(!document.getElementById('splash')||document.
     <button class="btn" id="tabLogin" aria-pressed="false">로그인</button>
   </div>
   <form id="authForm" class="col" style="gap:12px" novalidate>
-    <div class="col"><label class="lbl" for="aId">아이디 (1~10자)</label><input class="field" id="aId" maxlength="10" autocomplete="username" placeholder="별빛"></div>
+    <div class="col"><label class="lbl" for="aId">아이디 (1~10자)</label><input class="field" id="aId" maxlength="10" autocomplete="username" placeholder="별빛">
+      <p class="lbl" id="aIdHint" style="display:none;margin-top:2px">복구 이메일을 연결했다면 이메일로도 로그인할 수 있어요</p></div>
     <div class="col"><label class="lbl" for="aPw">비밀번호 (6자 이상)</label><input class="field" id="aPw" type="password" autocomplete="current-password" minlength="6"></div>
     <div class="col" id="newOnly">
       <label class="lbl" for="aPw2">비밀번호 확인</label><input class="field" id="aPw2" type="password" autocomplete="new-password">
@@ -202,6 +229,13 @@ new MutationObserver(function(){if(!document.getElementById('splash')||document.
     <p class="err" id="aErr"></p>
     <button class="btn solid" id="aGo" type="submit">아이디 만들고 들어가기</button>
   </form>
+  <button class="btn" id="forgotBtn" type="button" style="display:none;align-self:center;min-height:36px;font-size:13px;border:0">비밀번호를 잊었어요</button>
+  <div id="forgotBox" class="col" style="display:none;background:#121216;border:1px solid var(--line);border-radius:16px;padding:14px">
+    <p class="hint" style="margin:0">복구 이메일을 연결해 둔 경우에만 비밀번호를 다시 정할 수 있어요. 연결한 이메일을 써 주세요.</p>
+    <label class="sr" for="fEmail">복구 이메일</label><input class="field" id="fEmail" type="email" placeholder="name@example.com" autocomplete="email">
+    <p class="err" id="fErr"></p>
+    <button class="btn solid" id="fGo" type="button">재설정 메일 보내기</button>
+  </div>
   <button class="btn instBtn" type="button" style="display:none;align-self:center;min-height:40px;font-size:13px;color:var(--ink)">링크온 앱으로 설치하기</button>
   <p class="hint" style="text-align:center">아이디는 한 사람만 쓸 수 있어요. 비밀번호를 알면 어느 폰에서든 내 아이디로 들어와요.</p>
 </section>
@@ -221,6 +255,7 @@ new MutationObserver(function(){if(!document.getElementById('splash')||document.
     <div>
       <p class="lbl">지금 켜진 빛</p>
       <p id="count" style="margin:0;font-size:22px;font-weight:500">1개</p>
+      <p id="ratio" style="margin:2px 0 0;font-size:13px;color:var(--mute);display:flex;gap:10px;align-items:center"></p>
       <button class="mebtn" id="meBtn" aria-label="내 설정"><span id="meAv"></span><span id="meLbl">내 설정</span></button>
       <button class="btn" id="sampleBtn" aria-pressed="true" style="min-height:30px;margin-top:6px;padding:0 12px;font-size:12px;background:#0d0d11">샘플 빛 보는 중</button>
     </div>
@@ -231,6 +266,8 @@ new MutationObserver(function(){if(!document.getElementById('splash')||document.
     </div>
   </div>
   <canvas id="cv" aria-label="켜진 빛들의 지도. 빛을 눌러 선택하세요."></canvas>
+  <button class="mtbtn" id="mtBtn" type="button" aria-label="별똥별: 무작위 10분 익명 대화">☄ 별똥별</button>
+  <div class="mtwait" id="mtWait" role="status" aria-live="polite"><span class="mtstar" aria-hidden="true"></span><p id="mtWaitTxt" style="margin:0;font-size:15px">별똥별을 찾는 중…</p><p style="margin:0;font-size:12px;color:var(--mute)">지금 빛이 켜진 사람 중 한 명과 10분 동안 익명으로 이야기해요</p><button class="btn" id="mtCancel" type="button" style="min-height:36px;margin-top:4px">그만 찾기</button></div>
   <div class="zoom"><button id="zIn" aria-label="확대">+</button><button id="zOut" aria-label="축소">−</button><button id="zFit" class="sm" aria-label="전체 보기">전체</button></div>
   <p class="empty" id="empty">아직 방에 당신의 빛뿐이에요.<br>링크를 공유해 다른 사람이 불을 켜면 여기에 나타나요.</p>
   <div class="sheet" id="meSheet" role="dialog" aria-label="내 설정">
@@ -248,15 +285,23 @@ new MutationObserver(function(){if(!document.getElementById('splash')||document.
       <span style="display:flex;flex-direction:column;gap:2px;flex:1"><span class="t">빛 요청 받기</span><span class="s" id="reqSub">다른 빛이 나를 고르면 알림이 와요</span></span>
       <input type="checkbox" id="reqToggle" role="switch" style="width:22px;height:22px;accent-color:#FFB86B">
     </label>
-    <p id="meNote" class="hint">지도에는 빛만 보여요. 사진은 대화창이 열린 상대에게만 보여요.</p>
+    <div class="col" style="gap:6px"><label class="lbl" for="mottoIn">한마디 · 내 빛을 누른 사람에게 보여요</label>
+      <input class="field" id="mottoIn" maxlength="40" placeholder="오늘은 비가 와서 좋다" autocomplete="off"></div>
+    <div class="col" style="gap:8px;margin-top:4px">
+      <p class="lbl">계정</p>
+      <div class="row"><button class="sbtn" id="mBlocks" type="button">차단한 빛</button><button class="sbtn" id="mPw" type="button">비밀번호 변경</button><button class="sbtn" id="mMail" type="button">복구 이메일</button><button class="sbtn" id="mQuit" type="button" style="color:#FF9A8A">회원 탈퇴</button></div>
+    </div>
+    <p id="meNote" class="hint">프로필 사진은 내 빛을 누른 사람, 목록, 대화창에서 보여요.</p>
   </div>
   <div class="sheet" id="sheet" role="dialog" aria-label="선택한 빛">
     <div style="display:flex;align-items:center;gap:12px">
       <span class="dot" id="sDot" style="width:14px;height:14px"></span>
       <div style="flex:1;min-width:0"><p id="sTitle" style="margin:0;font-size:16px;font-weight:500"></p><p id="sSub" style="margin:2px 0 0;font-size:13px;color:var(--mute)"></p></div>
+      <button class="back" id="sMore" aria-label="더보기 (신고, 차단)">⋯</button>
       <button class="back" id="sClose" aria-label="닫기">×</button>
     </div>
-    <p id="sStatus" style="margin:0;font-size:14px;line-height:1.6;color:#C9C7BF"></p>
+    <p id="sMotto" style="margin:0;font-size:16px;line-height:1.6;color:var(--ink);white-space:pre-wrap;word-break:break-word"></p>
+    <p id="sStatus" style="margin:0;font-size:13px;line-height:1.6;color:var(--mute)"></p>
     <div class="row"><button class="btn solid" id="sToggle"></button><button class="btn" id="sTalk" style="color:var(--ink);display:none">대화하기</button></div>
   </div>
   <div class="bottom">
@@ -342,6 +387,20 @@ new MutationObserver(function(){if(!document.getElementById('splash')||document.
   <form class="compose" id="gcompose"><label class="sr" for="gIn">메시지</label><input id="gIn" placeholder="모두에게, 또는 @아이디 로 귓말" autocomplete="off" maxlength="500"><button class="btn solid" type="submit">보내기</button></form>
 </section>
 
+<section id="meteor" class="screen" aria-label="별똥별 대화" style="position:relative">
+  <div class="head" style="padding:calc(12px + env(safe-area-inset-top)) 14px 12px;border-bottom:1px solid #1F1F24">
+    <button class="back" id="mtBack" aria-label="별똥별 나가기">←</button>
+    <span class="dot" id="mtDot" style="width:14px;height:14px"></span>
+    <div style="flex:1;min-width:0"><p style="margin:0;font-size:16px;font-weight:500">별똥별</p><p id="mtSub" style="margin:0;font-size:12px;color:var(--mute)"></p></div>
+    <span class="mttime" id="mtTime">10:00</span>
+  </div>
+  <div class="msgs" id="mtMsgs"></div>
+  <div class="mtbar" id="mtBar"><p id="mtState" style="margin:0;font-size:12px;color:var(--mute);flex:1;line-height:1.5"></p><button class="btn solid" id="mtOk" type="button" style="min-height:38px;flex:none">이어지기</button></div>
+  <p class="cerr" id="mtErr"></p>
+  <form class="compose" id="mtCompose"><label class="sr" for="mtIn">메시지</label><input id="mtIn" placeholder="이름 없이, 지금 이 순간의 한마디" autocomplete="off" maxlength="300"><button class="btn solid" type="submit">보내기</button></form>
+  <div class="compose" id="mtEnd" style="display:none"><button class="btn solid" id="mtHome" type="button" style="flex:1">지도로 돌아가기</button></div>
+</section>
+
 <section id="chat" class="screen" aria-label="1:1 대화" style="position:relative">
   <div class="head">
     <button class="back" id="chBack" aria-label="대화방 목록으로">←</button>
@@ -349,6 +408,7 @@ new MutationObserver(function(){if(!document.getElementById('splash')||document.
     <button class="chav" id="chAv" style="display:none" aria-label="프로필 사진 크게 보기"></button>
     <div style="flex:1;min-width:0"><p id="chTitle" style="margin:0;font-size:16px;font-weight:500"></p><p id="chSub" style="margin:0;font-size:12px;color:var(--mute)"></p></div>
     <button class="sbtn" id="chFr">친구 신청</button>
+    <button class="back" id="chMore" aria-label="더보기 (신고, 차단)">⋯</button>
   </div>
   <div class="msgs" id="msgs"></div>
   <div class="big" id="big" role="dialog" aria-label="프로필 사진"><img id="bigImg" alt="상대의 프로필 사진"></div>
@@ -357,6 +417,7 @@ new MutationObserver(function(){if(!document.getElementById('splash')||document.
 </section>
 
 <div class="upd" id="upd" role="status"><span style="flex:1">새 버전이 있어요. 새로고침하면 바로 적용돼요.</span><button class="btn solid" id="updGo" style="min-height:36px;padding:0 14px;font-size:13px">새로고침</button></div>
+<div id="act" class="actwrap" role="dialog" aria-modal="true" aria-label="메뉴"><div class="actbg" id="actBg"></div><div class="actsheet" id="actSheet"></div></div>
 <div class="notice" id="notice" role="status"><span class="dot" id="nDot" style="width:12px;height:12px"></span><span id="nText" style="flex:1;font-size:14px;line-height:1.4"></span><button class="btn solid" id="nView" style="min-height:36px;padding:0 14px;font-size:13px">보기</button></div>
 </div>
 
